@@ -11,6 +11,11 @@ using Org.BouncyCastle.Crypto.Agreement.Srp;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Math;
+using Org.BouncyCastle.Crypto.Generators;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Encodings;
+using Org.BouncyCastle.Crypto.Engines;
+using Org.BouncyCastle.Crypto.Parameters;
 
 namespace APBWatcher
 {
@@ -19,6 +24,7 @@ namespace APBWatcher
         LS2GC_ERROR = 2000,
         LS2GC_LOGIN_PUZZLE = 2002,
         LS2GC_LOGIN_SALT = 2003,
+        LS2GC_ANS_LOGIN_SUCCESS = 2004,
         LS2GC_ANS_LOGIN_FAILED = 2005,
     }
 
@@ -49,6 +55,7 @@ namespace APBWatcher
         byte[] m_recvBuffer = new byte[RECV_BUFFER_SIZE];
         int m_recvOffset = 0;
         EncryptionProvider m_encryption = new EncryptionProvider();
+        byte[] m_srpKey = null;
 
         public event EventHandler OnConnectSuccess = delegate { };
         public event EventHandler<Exception> OnConnectFailed = delegate { };
@@ -56,6 +63,7 @@ namespace APBWatcher
         public event EventHandler<ErrorData> OnError = delegate { };
         public event EventHandler<int> OnPuzzleFailed = delegate { };
         public event EventHandler<LoginFailedData> OnLoginFailed = delegate { };
+        public event EventHandler OnLoginSuccess = delegate { };
 
         string m_username;
         string m_password;
@@ -184,6 +192,11 @@ namespace APBWatcher
                     Log.Info("Receive [LS2GC_LOGIN_SALT]");
                     HandleLoginSalt(packet);
                 }
+                else if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_ANS_LOGIN_SUCCESS)
+                {
+                    Log.Info("Receive [LS2GC_ANS_LOGIN_SUCCESS]");
+                    HandleLoginSuccess(packet);
+                }
 
                 if (m_socket != null)
                 {
@@ -195,6 +208,120 @@ namespace APBWatcher
                 Log.Warn("Exception occurred while receiving, disconnecting", e);
                 Disconnect();
             }
+        }
+
+        public void HandleLoginSuccess(ServerPacket packet)
+        {
+            var reader = packet.Reader;
+
+            string realTag = reader.ReadUnicodeString(50);
+            uint accountPremium = reader.ReadUInt32();
+            ulong timeStamp = reader.ReadUInt64();
+            ulong accountPermissions = reader.ReadUInt64();
+
+            Log.Debug(String.Format("m_szRealTag = {0}", realTag));
+            Log.Debug(String.Format("m_nAccountPremium = {0}", accountPremium));
+            Log.Debug(String.Format("m_nTimestamp = {0}", timeStamp));
+            Log.Debug(String.Format("m_nAccountPermissions = {0}", accountPermissions));
+
+            for (int i = 0; i < 5; i++)
+            {
+                Log.Debug(String.Format("m_nConfigFileVersion[{0}] = {1}", i, reader.ReadInt32()));
+            }
+
+            ushort voicePortMin = reader.ReadUInt16();
+            ushort voicePortMax = reader.ReadUInt16();
+            uint voiceAccountId = reader.ReadUInt32();
+            string voiceUsername = reader.ReadASCIIString(17);
+            string voiceKey = reader.ReadASCIIString(17);
+
+            Log.Debug(String.Format("m_nVoicePortMin = {0}", voicePortMin));
+            Log.Debug(String.Format("m_nVoicePortMax = {0}", voicePortMax));
+            Log.Debug(String.Format("m_nVoiceAccountID = {0}", voiceAccountId));
+            Log.Debug(String.Format("m_szVoiceUsername = {0}", voiceUsername));
+            Log.Debug(String.Format("m_szUnknownVoiceKey = {0}", voiceKey));
+
+            // Start reading the server's public key, starting with BLOBHEADER
+            byte type = reader.ReadByte();
+            byte version = reader.ReadByte();
+            reader.ReadUInt16(); // Skip reserved word
+            uint algId = reader.ReadUInt32();
+
+            if (type != 6 || version != 2 || algId != 0x0000A400)
+            {
+                Log.Error(String.Format("Unexpected public key header (Type = {0}, Version = {1}, AlgId = {2})", type, version, algId));
+                return; // TODO: probably disconnect or something
+            }
+
+            // Read the RSAPUBKEY part
+            byte[] magic = reader.ReadBytes(4);
+            if (magic[0] != 0x52 || magic[1] != 0x53 || magic[2] != 0x41 || magic[3] != 0x31)
+            {
+                Log.Error(String.Format("Incorrect RSAPUBKEY magic ({0}, {1}, {2}, {3})", magic[0], magic[1], magic[2], magic[3]));
+                return; // TODO: probably disconnect or something
+            }
+
+            uint bitLength = reader.ReadUInt32();
+            byte[] exponent = reader.ReadBytes(4);
+            Array.Reverse(exponent); // MS CryptoAPI uses little endian, everything else uses big endian
+
+            // Read the data part
+            byte[] modulus = reader.ReadBytes((int)bitLength / 8);
+            Array.Reverse(modulus);
+
+            // Read the rest of the packet data
+            string countryCode = reader.ReadUnicodeString();
+            string voiceURL = reader.ReadASCIIString();
+
+            Log.Debug(String.Format("m_nCountryCode = {0}", countryCode));
+            Log.Debug(String.Format("m_szVoiceURL = {0}", voiceURL));
+
+            // Create a new random RSA 1024 bit keypair for the client
+            var generator = new RsaKeyPairGenerator();
+            generator.Init(new KeyGenerationParameters(new SecureRandom(), 1024));
+            AsymmetricCipherKeyPair clientKeyPair = generator.GenerateKeyPair();
+            RsaKeyParameters clientPub = (RsaKeyParameters)clientKeyPair.Public;
+
+            // Put the client public key into the Microsoft Crypto API format
+            byte[] clientPubData = new byte[148];
+
+            byte[] header = {
+                0x06, 0x02, 0x00, 0x00, 0x00, 0xA4, 0x00, 0x00, 0x52, 0x53, 0x41, 0x31, 0x00, 0x04, 0x00, 0x00 
+            };
+            Array.Copy(header, clientPubData, header.Length);
+
+            byte[] exponentData = clientPub.Exponent.ToByteArrayUnsigned();
+            Array.Reverse(exponentData);
+            Array.Copy(exponentData, 0, clientPubData, 16, exponentData.Length);
+
+            byte[] modulusData = clientPub.Modulus.ToByteArrayUnsigned();
+            Array.Reverse(modulusData);
+            Array.Copy(modulusData, 0, clientPubData, 20, modulusData.Length);
+
+            // Create a public key for the server
+            var serverPub = new RsaKeyParameters(false, new BigInteger(1, modulus), new BigInteger(1, exponent));
+
+            // Create encryption engine with the server's public key
+            var encryptEngine = new Pkcs1Encoding(new RsaEngine());
+            encryptEngine.Init(true, serverPub);
+
+            // TODO: maybe do this properly rather than statically
+            byte[] encData1 = encryptEngine.ProcessBlock(clientPubData, 0, 117);
+            byte[] encData2 = encryptEngine.ProcessBlock(clientPubData, 117, 31);
+            Array.Reverse(encData1);
+            Array.Reverse(encData2);
+
+            // Use the SRP key we calculated before
+            m_encryption.SetKey(m_srpKey);
+
+            byte[] fullEncData = new byte[encData1.Length + encData2.Length];
+            Buffer.BlockCopy(encData1, 0, fullEncData, 0, encData1.Length);
+            Buffer.BlockCopy(encData2, 0, fullEncData, encData1.Length, encData2.Length);
+
+            var keyExchange = new Lobby.GC2LS_KEY_EXCHANGE(fullEncData);
+            SendPacket(keyExchange);
+
+            OnLoginSuccess(this, null);
         }
 
         public void HandleError(ServerPacket packet)
@@ -262,6 +389,7 @@ namespace APBWatcher
 
             srpClient.CalculateSecret(serverBInt);
             Console.WriteLine(HexDump(srpClient.CalculateSessionKey().ToByteArrayUnsigned()));
+            m_srpKey = srpClient.CalculateSessionKey().ToByteArrayUnsigned();
 
             // Calculate the proof that the client knows the secret
             BigInteger proof = srpClient.CalculateClientEvidenceMessage();
@@ -280,7 +408,7 @@ namespace APBWatcher
             LoginFailedData data = new LoginFailedData
             {
                 ReturnCode = reader.ReadUInt32(),
-                CountryCode = reader.ReadUnicodeString()
+                CountryCode = reader.ReadUnicodeString(48)
             };
 
             Log.Error(
@@ -485,7 +613,7 @@ namespace APBWatcher
  * eventOnGetWorldListFailed ( int nError )
  * eventOnGetWorldListSuccess ( )
  * eventOnCharacterList ( )
- * eventOnLoginFailed ( int nError, struct FString sCountryCode )
+ * DONE eventOnLoginFailed ( int nError, struct FString sCountryCode )
  * eventOnLoginSuccess ( )
  * DONE eventOnPuzzleFailed ( int nError )
  * DONE eventOnConnectFailed ( )

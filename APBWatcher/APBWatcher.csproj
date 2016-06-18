@@ -51,9 +51,11 @@
     <Compile Include="APBBinaryReader.cs" />
     <Compile Include="APBBinaryWriter.cs" />
     <Compile Include="ClientPacket.cs" />
+    <Compile Include="CryptoTest.cs" />
     <Compile Include="EncryptionProvider.cs" />
     <Compile Include="LobbyClient.cs" />
     <Compile Include="Lobby\GC2LS_ASK_LOGIN.cs" />
+    <Compile Include="Lobby\GC2LS_KEY_EXCHANGE.cs" />
     <Compile Include="Lobby\GC2LS_LOGIN_PROOF.cs" />
     <Compile Include="LoginStatuses.cs" />
     <Compile Include="RC4Provider.cs" />
