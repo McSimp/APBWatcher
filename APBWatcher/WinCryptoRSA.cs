@@ -101,5 +101,44 @@ namespace APBWatcher
 
             return result;
         }
+
+        public static byte[] DecryptData(Pkcs1Encoding engine, byte[] data)
+        {
+            // Calculate number of blocks we need to decrypt
+            int blockSize = engine.GetInputBlockSize();
+            if (data.Length % blockSize != 0)
+            {
+                throw new Exception("Cannot decrypt data, not a multiple of the output block size");
+            }
+
+            int numBlocks = data.Length / blockSize;
+
+            // Decrypt each block
+            List<byte[]> decryptedBlocks = new List<byte[]>(numBlocks);
+            int totalSize = 0;
+
+            for (int i = 0; i < numBlocks; i++)
+            {
+                byte[] reversedData = new byte[blockSize];
+                Buffer.BlockCopy(data, i * blockSize, reversedData, 0, blockSize);
+                Array.Reverse(reversedData); // Need to reverse due to Windows' endianness
+
+                byte[] decryptedBlock = engine.ProcessBlock(reversedData, 0, blockSize);
+                decryptedBlocks.Add(decryptedBlock);
+
+                totalSize += decryptedBlock.Length;
+            }
+
+            // Concatenate all the blocks into one buffer
+            byte[] result = new byte[totalSize];
+            int offset = 0;
+            foreach (var block in decryptedBlocks)
+            {
+                Buffer.BlockCopy(block, 0, result, offset, block.Length);
+                offset += block.Length;
+            }
+
+            return result;
+        }
     }
 }

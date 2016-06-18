@@ -26,6 +26,7 @@ namespace APBWatcher
         LS2GC_LOGIN_SALT = 2003,
         LS2GC_ANS_LOGIN_SUCCESS = 2004,
         LS2GC_ANS_LOGIN_FAILED = 2005,
+        LS2GC_WMI_REQUEST = 2021,
     }
 
     struct ErrorData
@@ -56,6 +57,7 @@ namespace APBWatcher
         int m_recvOffset = 0;
         EncryptionProvider m_encryption = new EncryptionProvider();
         byte[] m_srpKey = null;
+        Pkcs1Encoding m_clientDecryptEngine = null;
 
         public event EventHandler OnConnectSuccess = delegate { };
         public event EventHandler<Exception> OnConnectFailed = delegate { };
@@ -197,6 +199,11 @@ namespace APBWatcher
                     Log.Info("Receive [LS2GC_ANS_LOGIN_SUCCESS]");
                     HandleLoginSuccess(packet);
                 }
+                else if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_WMI_REQUEST)
+                {
+                    Log.Info("Receive [LS2GC_WMI_REQUEST]");
+                    HandleWMIRequest(packet);
+                }
 
                 if (m_socket != null)
                 {
@@ -208,6 +215,21 @@ namespace APBWatcher
                 Log.Warn("Exception occurred while receiving, disconnecting", e);
                 Disconnect();
             }
+        }
+
+        public void HandleWMIRequest(ServerPacket packet)
+        {
+            var reader = packet.Reader;
+
+            // Read data from packet
+            uint hwVValue = reader.ReadUInt32();
+            int encryptedDataSize = reader.ReadInt32();
+            byte[] encryptedData = reader.ReadBytes(encryptedDataSize);
+
+            // Decrypt data
+            byte[] decryptedData = WinCryptoRSA.DecryptData(m_clientDecryptEngine, encryptedData);
+
+            Console.WriteLine(HexDump(decryptedData));
         }
 
         public void HandleLoginSuccess(ServerPacket packet)
@@ -256,6 +278,10 @@ namespace APBWatcher
             generator.Init(new KeyGenerationParameters(new SecureRandom(), 1024));
             AsymmetricCipherKeyPair clientKeyPair = generator.GenerateKeyPair();
             RsaKeyParameters clientPub = (RsaKeyParameters)clientKeyPair.Public;
+
+            // Create the decryption engine for later
+            m_clientDecryptEngine = new Pkcs1Encoding(new RsaEngine());
+            m_clientDecryptEngine.Init(false, clientKeyPair.Private);
 
             // Put the client public key into the Microsoft Crypto API format
             byte[] clientPubBlob = WinCryptoRSA.CreatePublicKeyBlob(clientPub);
