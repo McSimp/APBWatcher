@@ -241,33 +241,8 @@ namespace APBWatcher
             Log.Debug(String.Format("m_szVoiceUsername = {0}", voiceUsername));
             Log.Debug(String.Format("m_szUnknownVoiceKey = {0}", voiceKey));
 
-            // Start reading the server's public key, starting with BLOBHEADER
-            byte type = reader.ReadByte();
-            byte version = reader.ReadByte();
-            reader.ReadUInt16(); // Skip reserved word
-            uint algId = reader.ReadUInt32();
-
-            if (type != 6 || version != 2 || algId != 0x0000A400)
-            {
-                Log.Error(String.Format("Unexpected public key header (Type = {0}, Version = {1}, AlgId = {2})", type, version, algId));
-                return; // TODO: probably disconnect or something
-            }
-
-            // Read the RSAPUBKEY part
-            byte[] magic = reader.ReadBytes(4);
-            if (magic[0] != 0x52 || magic[1] != 0x53 || magic[2] != 0x41 || magic[3] != 0x31)
-            {
-                Log.Error(String.Format("Incorrect RSAPUBKEY magic ({0}, {1}, {2}, {3})", magic[0], magic[1], magic[2], magic[3]));
-                return; // TODO: probably disconnect or something
-            }
-
-            uint bitLength = reader.ReadUInt32();
-            byte[] exponent = reader.ReadBytes(4);
-            Array.Reverse(exponent); // MS CryptoAPI uses little endian, everything else uses big endian
-
-            // Read the data part
-            byte[] modulus = reader.ReadBytes((int)bitLength / 8);
-            Array.Reverse(modulus);
+            // Read the server's public key
+            RsaKeyParameters serverPub = WinCryptoRSA.ReadPublicKeyBlob(reader);
 
             // Read the rest of the packet data
             string countryCode = reader.ReadUnicodeString();
@@ -283,42 +258,19 @@ namespace APBWatcher
             RsaKeyParameters clientPub = (RsaKeyParameters)clientKeyPair.Public;
 
             // Put the client public key into the Microsoft Crypto API format
-            byte[] clientPubData = new byte[148];
-
-            byte[] header = {
-                0x06, 0x02, 0x00, 0x00, 0x00, 0xA4, 0x00, 0x00, 0x52, 0x53, 0x41, 0x31, 0x00, 0x04, 0x00, 0x00 
-            };
-            Array.Copy(header, clientPubData, header.Length);
-
-            byte[] exponentData = clientPub.Exponent.ToByteArrayUnsigned();
-            Array.Reverse(exponentData);
-            Array.Copy(exponentData, 0, clientPubData, 16, exponentData.Length);
-
-            byte[] modulusData = clientPub.Modulus.ToByteArrayUnsigned();
-            Array.Reverse(modulusData);
-            Array.Copy(modulusData, 0, clientPubData, 20, modulusData.Length);
-
-            // Create a public key for the server
-            var serverPub = new RsaKeyParameters(false, new BigInteger(1, modulus), new BigInteger(1, exponent));
+            byte[] clientPubBlob = WinCryptoRSA.CreatePublicKeyBlob(clientPub);
 
             // Create encryption engine with the server's public key
             var encryptEngine = new Pkcs1Encoding(new RsaEngine());
             encryptEngine.Init(true, serverPub);
 
-            // TODO: maybe do this properly rather than statically
-            byte[] encData1 = encryptEngine.ProcessBlock(clientPubData, 0, 117);
-            byte[] encData2 = encryptEngine.ProcessBlock(clientPubData, 117, 31);
-            Array.Reverse(encData1);
-            Array.Reverse(encData2);
+            // Encrypt the client key blob to send to the server
+            byte[] encryptedClientKey = WinCryptoRSA.EncryptData(encryptEngine, clientPubBlob);
 
             // Use the SRP key we calculated before
             m_encryption.SetKey(m_srpKey);
 
-            byte[] fullEncData = new byte[encData1.Length + encData2.Length];
-            Buffer.BlockCopy(encData1, 0, fullEncData, 0, encData1.Length);
-            Buffer.BlockCopy(encData2, 0, fullEncData, encData1.Length, encData2.Length);
-
-            var keyExchange = new Lobby.GC2LS_KEY_EXCHANGE(fullEncData);
+            var keyExchange = new Lobby.GC2LS_KEY_EXCHANGE(encryptedClientKey);
             SendPacket(keyExchange);
 
             OnLoginSuccess(this, null);

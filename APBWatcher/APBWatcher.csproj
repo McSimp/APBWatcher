@@ -76,6 +76,7 @@
     <None Include="App.config" />
     <None Include="packages.config" />
     <Compile Include="WeakSrp6Client.cs" />
+    <Compile Include="WinCryptoRSA.cs" />
     <Compile Include="XXTEA.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
