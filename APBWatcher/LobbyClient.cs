@@ -16,6 +16,8 @@ using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Encodings;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Parameters;
+using System.IO;
+using System.Xml;
 
 namespace APBWatcher
 {
@@ -54,10 +56,11 @@ namespace APBWatcher
 
         ProxySocket m_socket;
         byte[] m_recvBuffer = new byte[RECV_BUFFER_SIZE];
-        int m_recvOffset = 0;
+        int m_receivedLength = 0;
         EncryptionProvider m_encryption = new EncryptionProvider();
         byte[] m_srpKey = null;
         Pkcs1Encoding m_clientDecryptEngine = null;
+        WMIStore m_wmiStore = null;
 
         public event EventHandler OnConnectSuccess = delegate { };
         public event EventHandler<Exception> OnConnectFailed = delegate { };
@@ -74,6 +77,7 @@ namespace APBWatcher
         {
             m_username = username;
             m_password = password;
+            m_wmiStore = new WMIStore("hw.yml");
         }
 
         private void ConnectInternal(string host, int port)
@@ -123,8 +127,7 @@ namespace APBWatcher
 
         private void BeginReceive()
         {
-            int length = m_recvBuffer.Length;
-            m_socket.BeginReceive(m_recvBuffer, m_recvOffset, length - m_recvOffset, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
+            m_socket.BeginReceive(m_recvBuffer, m_receivedLength, m_recvBuffer.Length - m_receivedLength, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
         }
 
         private void Disconnect()
@@ -161,49 +164,9 @@ namespace APBWatcher
                 }
 
                 Log.Debug(String.Format("Received packet, length={0}", length));
+                m_receivedLength += length;
 
-                // Decrypt packet if need be
-                if (m_encryption.Initialized)
-                {
-                    m_encryption.DecryptServerData(m_recvBuffer, 4, length - 4);
-                }
-
-                // Construct new packet
-                Log.Debug(String.Format("Size field = {0}", BitConverter.ToUInt32(m_recvBuffer, 0)));
-
-                ServerPacket packet = new ServerPacket(m_recvBuffer, 4, m_recvOffset + length - 4);
-                Log.Debug(Environment.NewLine + HexDump(packet.Data));
-
-                if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_LOGIN_PUZZLE)
-                {
-                    Log.Info("Receive [LS2GC_LOGIN_PUZZLE]");
-                    HandleLoginPuzzle(packet);
-                } 
-                else if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_ERROR)
-                {
-                    Log.Info("Receive [LS2GC_ERROR]");
-                    HandleError(packet);
-                }
-                else if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_ANS_LOGIN_FAILED)
-                {
-                    Log.Info("Receive [LS2GC_ANS_LOGIN_FAILED]");
-                    HandleLoginFailed(packet);
-                }
-                else if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_LOGIN_SALT)
-                {
-                    Log.Info("Receive [LS2GC_LOGIN_SALT]");
-                    HandleLoginSalt(packet);
-                }
-                else if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_ANS_LOGIN_SUCCESS)
-                {
-                    Log.Info("Receive [LS2GC_ANS_LOGIN_SUCCESS]");
-                    HandleLoginSuccess(packet);
-                }
-                else if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_WMI_REQUEST)
-                {
-                    Log.Info("Receive [LS2GC_WMI_REQUEST]");
-                    HandleWMIRequest(packet);
-                }
+                TryParsePacket();
 
                 if (m_socket != null)
                 {
@@ -214,6 +177,61 @@ namespace APBWatcher
             {
                 Log.Warn("Exception occurred while receiving, disconnecting", e);
                 Disconnect();
+            }
+        }
+
+        private void TryParsePacket()
+        {
+            int size = BitConverter.ToInt32(m_recvBuffer, 0);
+            if (size > m_receivedLength)
+            {
+                Log.Debug(String.Format("Not enough data to construct packet (Have {0}, need {1})", m_receivedLength, size));
+                return;
+            }
+
+            // Construct new packet
+            Log.Debug(String.Format("Size field = {0}", size));
+
+            // Decrypt packet if need be
+            if (m_encryption.Initialized)
+            {
+                m_encryption.DecryptServerData(m_recvBuffer, 4, size - 4);
+            }
+
+            ServerPacket packet = new ServerPacket(m_recvBuffer, 4, size - 4);
+            Log.Debug(Environment.NewLine + HexDump(packet.Data));
+
+            m_receivedLength -= size;
+
+            if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_LOGIN_PUZZLE)
+            {
+                Log.Info("Receive [LS2GC_LOGIN_PUZZLE]");
+                HandleLoginPuzzle(packet);
+            }
+            else if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_ERROR)
+            {
+                Log.Info("Receive [LS2GC_ERROR]");
+                HandleError(packet);
+            }
+            else if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_ANS_LOGIN_FAILED)
+            {
+                Log.Info("Receive [LS2GC_ANS_LOGIN_FAILED]");
+                HandleLoginFailed(packet);
+            }
+            else if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_LOGIN_SALT)
+            {
+                Log.Info("Receive [LS2GC_LOGIN_SALT]");
+                HandleLoginSalt(packet);
+            }
+            else if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_ANS_LOGIN_SUCCESS)
+            {
+                Log.Info("Receive [LS2GC_ANS_LOGIN_SUCCESS]");
+                HandleLoginSuccess(packet);
+            }
+            else if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_WMI_REQUEST)
+            {
+                Log.Info("Receive [LS2GC_WMI_REQUEST]");
+                HandleWMIRequest(packet);
             }
         }
 
@@ -230,6 +248,67 @@ namespace APBWatcher
             byte[] decryptedData = WinCryptoRSA.DecryptData(m_clientDecryptEngine, encryptedData);
 
             Console.WriteLine(HexDump(decryptedData));
+
+            // Create reader for decrypted data
+            var dataReader = new APBBinaryReader(new MemoryStream(decryptedData));
+
+            string queryLanguage = dataReader.ReadASCIIString(4);
+            if (queryLanguage != "WQL")
+            {
+                Log.Warn(String.Format("Unexpected query language for WMI request ({0})", queryLanguage));
+                return; // TODO: Disconnect or something
+            }
+
+            int numSections = dataReader.ReadInt32();
+            int numFields = dataReader.ReadInt32();
+
+            // Create array to store hashes of sections
+            List<byte[]> hashes = new List<byte[]>(numSections);
+
+            // Create XML writer to write response for WMI queries
+            StringBuilder xmlBuilder = new StringBuilder();
+            XmlWriterSettings settings = new XmlWriterSettings();
+            settings.OmitXmlDeclaration = true;
+            XmlWriter writer = XmlWriter.Create(xmlBuilder, settings);
+
+            writer.WriteStartElement("HW");
+            writer.WriteAttributeString("v", hwVValue.ToString());
+
+            // Read each section, which contains data on a WQL query for the HW part of the response
+            for (int i = 0; i < numSections; i++)
+            {
+                byte sectionNumber = dataReader.ReadByte();
+                byte sectionNameLength = dataReader.ReadByte();
+                string sectionName = dataReader.ReadASCIIString(sectionNameLength + 1);
+                byte skipHash = dataReader.ReadByte();
+                byte selectLength = dataReader.ReadByte();
+                string selectClause = dataReader.ReadASCIIString(selectLength + 1);
+                byte fromLength = dataReader.ReadByte();
+                string fromClause = dataReader.ReadASCIIString(fromLength + 1);
+
+                Log.Info(String.Format("WMI Query: Section={0}, SkipHash={1}, Query=SELECT {2} {3}", sectionName, skipHash, selectClause, fromClause));
+
+                byte[] hash = m_wmiStore.BuildSectionAndHash(writer, sectionName, selectClause, fromClause, (skipHash == 1));
+                if (hash != null)
+                {
+                    hashes.Add(hash);
+                }
+            }
+
+            writer.WriteEndElement();
+            writer.Flush();
+
+            Log.Info(xmlBuilder.ToString());
+
+            // Create the middle section, which is the first 4 bytes of each hash concatenated together
+            byte[] hashBlock = new byte[4 * hashes.Count];
+            for (int i = 0; i < hashes.Count; i++)
+            {
+                Buffer.BlockCopy(hashes[i], 0, hashBlock, i * 4, 4);
+            }
+
+            // Now we need to prepare the BFP section, which in APB is done with code from https://github.com/cavaliercoder/sysinv/
+            
         }
 
         public void HandleLoginSuccess(ServerPacket packet)

@@ -22,6 +22,10 @@ using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Parameters;
 using System.Runtime.InteropServices;
 using Org.BouncyCastle.OpenSsl;
+using YamlDotNet.RepresentationModel;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
+using System.Xml;
 
 namespace APBWatcher
 {
@@ -162,11 +166,25 @@ namespace APBWatcher
             int err = Marshal.GetLastWin32Error();
         }
 
+        static void YamlTest()
+        {
+            var uhh = new WMIStore(@"F:\dev\apb\APBWatcher\APBWatcher\bin\Debug\hw.yml");
+            StringBuilder test = new StringBuilder();
+            XmlWriterSettings settings = new XmlWriterSettings();
+            settings.OmitXmlDeclaration = true;
+            XmlWriter writer = XmlWriter.Create(test, settings);
+            uhh.BuildSectionAndHash(writer, "CPU", "ProcessorId,Manufacturer,Name,Description,Revision,L2CacheSize,@AddressWidth", "FROM Win32_Processor", false);
+            writer.Flush();
+            string res = test.ToString();
+        }
+
         static void Main(string[] args)
         {
             //SRPTest();
             //return;
             //TestCrypto();
+            //return;
+            //YamlTest();
             //return;
 
             string host = "apb.login.gamersfirst.com";

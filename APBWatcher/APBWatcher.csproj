@@ -46,6 +46,9 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="YamlDotNet">
+      <HintPath>..\packages\YamlDotNet.3.9.0\lib\net35\YamlDotNet.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="APBBinaryReader.cs" />
@@ -77,6 +80,7 @@
     <None Include="packages.config" />
     <Compile Include="WeakSrp6Client.cs" />
     <Compile Include="WinCryptoRSA.cs" />
+    <Compile Include="WMIStore.cs" />
     <Compile Include="XXTEA.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
