@@ -46,7 +46,8 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="YamlDotNet">
+    <Reference Include="YamlDotNet, Version=3.9.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\YamlDotNet.3.9.0\lib\net35\YamlDotNet.dll</HintPath>
     </Reference>
   </ItemGroup>
@@ -60,6 +61,7 @@
     <Compile Include="Lobby\GC2LS_ASK_LOGIN.cs" />
     <Compile Include="Lobby\GC2LS_KEY_EXCHANGE.cs" />
     <Compile Include="Lobby\GC2LS_LOGIN_PROOF.cs" />
+    <Compile Include="Lobby\GC2LS_HARDWARE_INFO.cs" />
     <Compile Include="LoginStatuses.cs" />
     <Compile Include="RC4Provider.cs" />
     <Compile Include="ServerPacket.cs" />
@@ -80,7 +82,7 @@
     <None Include="packages.config" />
     <Compile Include="WeakSrp6Client.cs" />
     <Compile Include="WinCryptoRSA.cs" />
-    <Compile Include="WMIStore.cs" />
+    <Compile Include="HardwareStore.cs" />
     <Compile Include="XXTEA.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

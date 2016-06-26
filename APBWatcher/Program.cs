@@ -168,14 +168,21 @@ namespace APBWatcher
 
         static void YamlTest()
         {
-            var uhh = new WMIStore(@"F:\dev\apb\APBWatcher\APBWatcher\bin\Debug\hw.yml");
+            var uhh = new HardwareStore(@"F:\dev\apb\APBWatcher\APBWatcher\bin\Debug\hw.yml");
             StringBuilder test = new StringBuilder();
             XmlWriterSettings settings = new XmlWriterSettings();
             settings.OmitXmlDeclaration = true;
             XmlWriter writer = XmlWriter.Create(test, settings);
-            uhh.BuildSectionAndHash(writer, "CPU", "ProcessorId,Manufacturer,Name,Description,Revision,L2CacheSize,@AddressWidth", "FROM Win32_Processor", false);
+            uhh.BuildWMISectionAndHash(writer, "CPU", "ProcessorId,Manufacturer,Name,Description,Revision,L2CacheSize,@AddressWidth", "FROM Win32_Processor", false);
             writer.Flush();
             string res = test.ToString();
+            var asdf = uhh.BuildWindowsInfo();
+            StringBuilder test2 = new StringBuilder();
+            XmlWriter writer2 = XmlWriter.Create(test2, settings);
+            uhh.BuildBFPSection(writer2);
+            writer2.Flush();
+            string res2 = test2.ToString();
+            byte[] bfpHash = uhh.BuildBFPHash();
         }
 
         static void Main(string[] args)

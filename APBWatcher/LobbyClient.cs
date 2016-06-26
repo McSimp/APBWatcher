@@ -60,7 +60,7 @@ namespace APBWatcher
         EncryptionProvider m_encryption = new EncryptionProvider();
         byte[] m_srpKey = null;
         Pkcs1Encoding m_clientDecryptEngine = null;
-        WMIStore m_wmiStore = null;
+        HardwareStore m_wmiStore = null;
 
         public event EventHandler OnConnectSuccess = delegate { };
         public event EventHandler<Exception> OnConnectFailed = delegate { };
@@ -77,7 +77,7 @@ namespace APBWatcher
         {
             m_username = username;
             m_password = password;
-            m_wmiStore = new WMIStore("hw.yml");
+            m_wmiStore = new HardwareStore("hw.yml");
         }
 
         private void ConnectInternal(string host, int port)
@@ -288,7 +288,7 @@ namespace APBWatcher
 
                 Log.Info(String.Format("WMI Query: Section={0}, SkipHash={1}, Query=SELECT {2} {3}", sectionName, skipHash, selectClause, fromClause));
 
-                byte[] hash = m_wmiStore.BuildSectionAndHash(writer, sectionName, selectClause, fromClause, (skipHash == 1));
+                byte[] hash = m_wmiStore.BuildWMISectionAndHash(writer, sectionName, selectClause, fromClause, (skipHash == 1));
                 if (hash != null)
                 {
                     hashes.Add(hash);
@@ -307,7 +307,7 @@ namespace APBWatcher
                 Buffer.BlockCopy(hashes[i], 0, hashBlock, i * 4, 4);
             }
 
-            // Now we need to prepare the BFP section, which in APB is done with code from https://github.com/cavaliercoder/sysinv/
+            // Now we need to prepare the BFP section, which in APB is done with similar code to that at https://github.com/cavaliercoder/sysinv/
             
         }
 
