@@ -208,6 +208,7 @@ namespace APBWatcher
             lc.OnConnectFailed += lc_OnConnectFailed;
             lc.OnDisconnect += lc_OnDisconnect;
             lc.OnLoginSuccess += lc_OnLoginSuccess;
+            lc.OnCharacterList += lc_OnCharacterList;
             state = ClientState.kCLIENT_STATE_LOGINSERVER_CONNECT_IN_PROGRESS;
             lc.ConnectProxy(host, port, "127.0.0.1", 9050, null, null);
             //lc.Connect(host, port);
@@ -224,6 +225,11 @@ namespace APBWatcher
             lc.HandleLoginSalt(packet);
             */
             Console.ReadLine();
+        }
+
+        static void lc_OnCharacterList(object sender, List<LobbyClient.CharacterInfo> e)
+        {
+            Console.Write("Characters received!");
         }
 
         static void lc_OnLoginSuccess(object sender, EventArgs e)

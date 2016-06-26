@@ -24,11 +24,13 @@ namespace APBWatcher
     enum LobbyOpCodes : uint
     {
         LS2GC_ERROR = 2000,
+        LS2GC_KICK = 2001,
         LS2GC_LOGIN_PUZZLE = 2002,
         LS2GC_LOGIN_SALT = 2003,
         LS2GC_ANS_LOGIN_SUCCESS = 2004,
         LS2GC_ANS_LOGIN_FAILED = 2005,
         LS2GC_WMI_REQUEST = 2021,
+        LS2GC_CHARACTER_LIST = 2006,
     }
 
     struct ErrorData
@@ -46,6 +48,12 @@ namespace APBWatcher
     {
         public uint ReturnCode;
         public string CountryCode;
+    }
+
+    struct KickData
+    {
+        public uint Reason;
+        public string Information;
     }
 
     class LobbyClient
@@ -70,6 +78,8 @@ namespace APBWatcher
         public event EventHandler<int> OnPuzzleFailed = delegate { };
         public event EventHandler<LoginFailedData> OnLoginFailed = delegate { };
         public event EventHandler OnLoginSuccess = delegate { };
+        public event EventHandler<List<CharacterInfo>> OnCharacterList = delegate { };
+        public event EventHandler<KickData> OnKick = delegate { };
 
         string m_username;
         string m_password;
@@ -234,6 +244,79 @@ namespace APBWatcher
                 Log.Info("Receive [LS2GC_WMI_REQUEST]");
                 HandleWMIRequest(packet);
             }
+            else if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_CHARACTER_LIST)
+            {
+                Log.Info("Receive [LS2GC_CHARACTER_LIST]");
+                HandleCharacterList(packet);
+            }
+            else if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_KICK)
+            {
+                Log.Info("Receive [LS2GC_KICK]");
+                HandleKick(packet);
+            }
+        }
+
+        public void HandleKick(ServerPacket packet)
+        {
+            var reader = packet.Reader;
+            var data = new KickData
+            {
+                Reason = reader.ReadUInt32(),
+                Information = reader.ReadUnicodeString()
+            };
+
+            OnKick(this, data);
+            // TODO: Disconnect?
+        }
+
+        public class CharacterInfo
+        {
+            public enum FactionType : byte
+            {
+                ENFORCER = 1,
+                CRIMINAL = 2
+            }
+
+            public int SlotNumber { get; set; }
+            public FactionType Faction { get; set; }
+            public int WorldStatus { get; set; }
+            public int WorldUID { get; set; }
+            public string WorldName { get; set; }
+            public string CharacterName { get; set; }
+            public int Rating { get; set; }
+            public DateTime LastLogin { get; set; }
+        }
+
+        public void HandleCharacterList(ServerPacket packet)
+        {
+            var reader = packet.Reader;
+
+            byte numCharacters = reader.ReadByte();
+            int numAdditionalSlots = reader.ReadInt32();
+            byte accountThreat = reader.ReadByte();
+
+            Log.Debug(String.Format("m_nCharacters = {0}", numCharacters));
+            Log.Debug(String.Format("m_nNumAdditionalCharacterSlots = {0}", numAdditionalSlots));
+            Log.Debug(String.Format("m_nAccountThreat = {0}", accountThreat));
+
+            var characters = new List<CharacterInfo>(numCharacters);
+
+            for(int i = 0; i < numCharacters; i++)
+            {
+                var info = new CharacterInfo();
+                info.SlotNumber = (int)reader.ReadByte();
+                info.Faction = (CharacterInfo.FactionType)reader.ReadByte();
+                info.WorldStatus = (int)reader.ReadByte();
+                info.WorldUID = reader.ReadInt32();
+                info.WorldName = reader.ReadUnicodeString(34);
+                info.CharacterName = reader.ReadUnicodeString(34);
+                info.Rating = reader.ReadInt32();
+                info.LastLogin = new DateTime(reader.ReadInt16(), reader.ReadInt16(), reader.ReadInt16(), reader.ReadInt16(), reader.ReadInt16(), reader.ReadInt16());
+                reader.ReadInt32(); // This is the "fraction" part of last login but I don't care about it
+                characters.Add(info);
+            }
+
+            OnCharacterList(this, characters);
         }
 
         public void HandleWMIRequest(ServerPacket packet)
@@ -666,34 +749,34 @@ namespace APBWatcher
 }
 
 /*
- * eventOnKick (  int nReason, struct FString sInformation  )
+ * DONE eventOnKick (  int nReason, struct FString sInformation  )
  * DONE eventOnError(  int nMessageId, int nQueryId, int nReturnCode, int nParam1, int nParam2, int nParam3, int nParam4  )
  * DONE eventOnDisconnect
- * eventOnSaveConfigFailed ( int nError, int nIndex )
- * eventOnSaveConfigSuccess ( int nIndex )
- * eventOnLoadConfigFailed ( int nError, int nIndex )
- * eventOnLoadConfigSuccess ( int nIndex )
  * eventOnWorldEnterFailed ( int nError )
  * eventOnWorldEnterSuccess ( )
  * eventOnCharacterInfoFailed ( int nError )
  * eventOnCharacterInfoSuccess ( int nSlotNumber )
- * eventCharacterGetNumAdditionalSlots ( )
- * eventOnCharacterDeleteFailed ( int nError )
- * eventOnCharacterDeleteSuccess ( )
- * eventOnCharacterCreateFailed ( int nError )
- * eventOnCharacterCreateSuccess ( int nSlotNumber )
- * eventOnNameChangeFailed ( int nError )
- * eventOnNameChangeSuccess ( int nSlotNumber )
- * eventOnNameCheckFailed ( int nError )
- * eventOnNameCheckSuccess ( )
  * eventOnWorldStatus ( int nWorldUID, int nStatus )
  * eventOnGetWorldListFailed ( int nError )
  * eventOnGetWorldListSuccess ( )
- * eventOnCharacterList ( )
+ * DONE eventOnCharacterList ( )
  * DONE eventOnLoginFailed ( int nError, struct FString sCountryCode )
- * eventOnLoginSuccess ( )
+ * DONE eventOnLoginSuccess ( )
  * DONE eventOnPuzzleFailed ( int nError )
  * DONE eventOnConnectFailed ( )
  * DONE eventOnConnectSuccess ( )
- * eventConnectToLS ( )
+ * DONT CARE eventConnectToLS ( )
+ * DONT CARE eventOnSaveConfigFailed ( int nError, int nIndex )
+ * DONT CARE eventOnSaveConfigSuccess ( int nIndex )
+ * DONT CARE eventOnLoadConfigFailed ( int nError, int nIndex )
+ * DONT CARE eventOnLoadConfigSuccess ( int nIndex )
+ * DONT CARE eventOnCharacterDeleteFailed ( int nError )
+ * DONT CARE eventOnCharacterDeleteSuccess ( )
+ * DONT CARE eventOnCharacterCreateFailed ( int nError )
+ * DONT CARE eventOnCharacterCreateSuccess ( int nSlotNumber )
+ * DONT CARE eventOnNameChangeFailed ( int nError )
+ * DONT CARE eventOnNameChangeSuccess ( int nSlotNumber )
+ * DONT CARE eventOnNameCheckFailed ( int nError )
+ * DONT CARE eventOnNameCheckSuccess ( )
+ * DONT CARE eventCharacterGetNumAdditionalSlots ( )
 */
