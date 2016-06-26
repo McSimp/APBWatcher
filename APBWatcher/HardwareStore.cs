@@ -52,6 +52,14 @@ namespace APBWatcher
         
         private HardwareDB m_hardwareDB;
 
+        public int BFPVersion
+        {
+            get
+            {
+                return m_hardwareDB.BFPVersion;
+            }
+        }
+
         public HardwareStore(string storeFile)
         {
             using (TextReader reader = File.OpenText(storeFile))

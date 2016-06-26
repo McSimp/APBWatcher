@@ -60,7 +60,8 @@ namespace APBWatcher
         EncryptionProvider m_encryption = new EncryptionProvider();
         byte[] m_srpKey = null;
         Pkcs1Encoding m_clientDecryptEngine = null;
-        HardwareStore m_wmiStore = null;
+        Pkcs1Encoding m_serverEncryptEngine = null;
+        HardwareStore m_hardwareStore = null;
 
         public event EventHandler OnConnectSuccess = delegate { };
         public event EventHandler<Exception> OnConnectFailed = delegate { };
@@ -77,7 +78,7 @@ namespace APBWatcher
         {
             m_username = username;
             m_password = password;
-            m_wmiStore = new HardwareStore("hw.yml");
+            m_hardwareStore = new HardwareStore("hw.yml");
         }
 
         private void ConnectInternal(string host, int port)
@@ -262,17 +263,18 @@ namespace APBWatcher
             int numSections = dataReader.ReadInt32();
             int numFields = dataReader.ReadInt32();
 
+            XmlWriterSettings settings = new XmlWriterSettings();
+            settings.OmitXmlDeclaration = true;
+
             // Create array to store hashes of sections
             List<byte[]> hashes = new List<byte[]>(numSections);
 
             // Create XML writer to write response for WMI queries
-            StringBuilder xmlBuilder = new StringBuilder();
-            XmlWriterSettings settings = new XmlWriterSettings();
-            settings.OmitXmlDeclaration = true;
-            XmlWriter writer = XmlWriter.Create(xmlBuilder, settings);
+            StringBuilder hwBuilder = new StringBuilder();
+            XmlWriter hwWriter = XmlWriter.Create(hwBuilder, settings);
 
-            writer.WriteStartElement("HW");
-            writer.WriteAttributeString("v", hwVValue.ToString());
+            hwWriter.WriteStartElement("HW");
+            hwWriter.WriteAttributeString("v", hwVValue.ToString());
 
             // Read each section, which contains data on a WQL query for the HW part of the response
             for (int i = 0; i < numSections; i++)
@@ -288,17 +290,15 @@ namespace APBWatcher
 
                 Log.Info(String.Format("WMI Query: Section={0}, SkipHash={1}, Query=SELECT {2} {3}", sectionName, skipHash, selectClause, fromClause));
 
-                byte[] hash = m_wmiStore.BuildWMISectionAndHash(writer, sectionName, selectClause, fromClause, (skipHash == 1));
+                byte[] hash = m_hardwareStore.BuildWMISectionAndHash(hwWriter, sectionName, selectClause, fromClause, (skipHash == 1));
                 if (hash != null)
                 {
                     hashes.Add(hash);
                 }
             }
 
-            writer.WriteEndElement();
-            writer.Flush();
-
-            Log.Info(xmlBuilder.ToString());
+            hwWriter.WriteEndElement();
+            hwWriter.Flush();
 
             // Create the middle section, which is the first 4 bytes of each hash concatenated together
             byte[] hashBlock = new byte[4 * hashes.Count];
@@ -308,7 +308,27 @@ namespace APBWatcher
             }
 
             // Now we need to prepare the BFP section, which in APB is done with similar code to that at https://github.com/cavaliercoder/sysinv/
-            
+            StringBuilder bfpBuilder = new StringBuilder();
+            XmlWriter bfpWriter = XmlWriter.Create(bfpBuilder, settings);
+            m_hardwareStore.BuildBFPSection(bfpWriter);
+            bfpWriter.Flush();
+
+            // Generate the hash for the BFP section
+            byte[] bfpHash = m_hardwareStore.BuildBFPHash();
+
+            // Generate the Windows information section
+            byte[] windowsInfo = m_hardwareStore.BuildWindowsInfo();
+
+            // Encrypt the BFP and HW sections with our public key
+            byte[] hwUnicodeData = Encoding.Unicode.GetBytes(hwBuilder.ToString());
+            byte[] bfpUnicodeData = Encoding.Unicode.GetBytes(bfpBuilder.ToString());
+
+            byte[] encryptedHWData = WinCryptoRSA.EncryptData(m_serverEncryptEngine, hwUnicodeData);
+            byte[] encryptedBFPData = WinCryptoRSA.EncryptData(m_serverEncryptEngine, bfpUnicodeData);
+
+            // Construct and send the response!
+            var hardwareInfo = new Lobby.GC2LS_HARDWARE_INFO(windowsInfo, 0, 0, m_hardwareStore.BFPVersion, bfpHash, hashBlock, encryptedBFPData, encryptedHWData);
+            SendPacket(hardwareInfo);
         }
 
         public void HandleLoginSuccess(ServerPacket packet)
@@ -366,11 +386,11 @@ namespace APBWatcher
             byte[] clientPubBlob = WinCryptoRSA.CreatePublicKeyBlob(clientPub);
 
             // Create encryption engine with the server's public key
-            var encryptEngine = new Pkcs1Encoding(new RsaEngine());
-            encryptEngine.Init(true, serverPub);
+            m_serverEncryptEngine = new Pkcs1Encoding(new RsaEngine());
+            m_serverEncryptEngine.Init(true, serverPub);
 
             // Encrypt the client key blob to send to the server
-            byte[] encryptedClientKey = WinCryptoRSA.EncryptData(encryptEngine, clientPubBlob);
+            byte[] encryptedClientKey = WinCryptoRSA.EncryptData(m_serverEncryptEngine, clientPubBlob);
 
             // Use the SRP key we calculated before
             m_encryption.SetKey(m_srpKey);
