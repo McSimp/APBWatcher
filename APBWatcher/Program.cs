@@ -39,7 +39,7 @@ namespace APBWatcher
             kCLIENT_STATE_LOGIN_IN_PROGRESS = 3, // IGNORED
             kCLIENT_STATE_LOGIN_SUCCESS = 4,
             kCLIENT_STATE_CHARACTER_LIST_RECEIVED = 5,
-            kCLIENT_STATE_WORLD_LIST_RECEIVED = 6
+            kCLIENT_STATE_WORLD_LIST_RECEIVED = 6,
         };
 
         public static ManualResetEvent allDone = new ManualResetEvent(false);
@@ -209,6 +209,8 @@ namespace APBWatcher
             lc.OnDisconnect += lc_OnDisconnect;
             lc.OnLoginSuccess += lc_OnLoginSuccess;
             lc.OnCharacterList += lc_OnCharacterList;
+            lc.OnGetWorldListSuccess += lc_OnGetWorldListSuccess;
+            lc.OnWorldEnterSuccess += lc_OnWorldEnterSuccess;
             state = ClientState.kCLIENT_STATE_LOGINSERVER_CONNECT_IN_PROGRESS;
             lc.ConnectProxy(host, port, "127.0.0.1", 9050, null, null);
             //lc.Connect(host, port);
@@ -227,9 +229,24 @@ namespace APBWatcher
             Console.ReadLine();
         }
 
+        static void lc_OnWorldEnterSuccess(object sender, EventArgs e)
+        {
+            Console.WriteLine("World enter success!");
+        }
+
+        static void lc_OnGetWorldListSuccess(object sender, List<LobbyClient.WorldInfo> e)
+        {
+            Console.WriteLine("Worlds received!");
+            var lc = (LobbyClient)sender;
+            lc.WorldEnter(0);
+        }
+
         static void lc_OnCharacterList(object sender, List<LobbyClient.CharacterInfo> e)
         {
+            state = ClientState.kCLIENT_STATE_CHARACTER_LIST_RECEIVED;
             Console.Write("Characters received!");
+            var lc = (LobbyClient)sender;
+            lc.GetWorldList();
         }
 
         static void lc_OnLoginSuccess(object sender, EventArgs e)

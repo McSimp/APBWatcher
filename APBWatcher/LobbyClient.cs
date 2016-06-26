@@ -31,6 +31,8 @@ namespace APBWatcher
         LS2GC_ANS_LOGIN_FAILED = 2005,
         LS2GC_WMI_REQUEST = 2021,
         LS2GC_CHARACTER_LIST = 2006,
+        LS2GC_ANS_WORLD_LIST = 2008,
+        LS2GC_ANS_WORLD_ENTER = 2013,
     }
 
     struct ErrorData
@@ -80,6 +82,10 @@ namespace APBWatcher
         public event EventHandler OnLoginSuccess = delegate { };
         public event EventHandler<List<CharacterInfo>> OnCharacterList = delegate { };
         public event EventHandler<KickData> OnKick = delegate { };
+        public event EventHandler<int> OnGetWorldListFailed = delegate { };
+        public event EventHandler<List<WorldInfo>> OnGetWorldListSuccess = delegate { };
+        public event EventHandler<int> OnWorldEnterFailed = delegate { };
+        public event EventHandler OnWorldEnterSuccess = delegate { };
 
         string m_username;
         string m_password;
@@ -210,7 +216,7 @@ namespace APBWatcher
             }
 
             ServerPacket packet = new ServerPacket(m_recvBuffer, 4, size - 4);
-            Log.Debug(Environment.NewLine + HexDump(packet.Data));
+            //Log.Debug(Environment.NewLine + HexDump(packet.Data));
 
             m_receivedLength -= size;
 
@@ -254,6 +260,105 @@ namespace APBWatcher
                 Log.Info("Receive [LS2GC_KICK]");
                 HandleKick(packet);
             }
+            else if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_ANS_WORLD_LIST)
+            {
+                Log.Info("Receive [LS2GC_ANS_WORLD_LIST]");
+                HandleWorldList(packet);
+            }
+            else if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_ANS_WORLD_ENTER)
+            {
+                Log.Info("Receive [LS2GC_ANS_WORLD_ENTER]");
+                HandleWorldEnter(packet);
+            }
+            else
+            {
+                Log.Warn(String.Format("Unknown packet received (Opcode = {0})", packet.OpCode));
+            }
+        }
+
+        public void HandleWorldEnter(ServerPacket packet)
+        {
+            var reader = packet.Reader;
+
+            int returnCode = reader.ReadInt32();
+            if (returnCode != 0)
+            {
+                Log.Error(String.Format("LS2GC_ANS_WORLD_ENTER response had invalid return code {0}", returnCode));
+                OnWorldEnterFailed(this, returnCode);
+                return;
+            }
+
+            IPAddress worldServerIP = new IPAddress(reader.ReadBytes(4));
+            ushort worldServerPort = reader.ReadUInt16();
+            ulong timestamp = reader.ReadUInt64();
+            IPAddress pingServerIP = new IPAddress(reader.ReadBytes(4));
+
+            Log.Debug(String.Format("m_nReturnCode = {0}", returnCode));
+            Log.Debug(String.Format("m_nWorldServerIPAddress = {0}", worldServerIP));
+            Log.Debug(String.Format("m_nWorldServerPingIPAddress = {0}", pingServerIP));
+            Log.Debug(String.Format("m_nWorldServerPort = {0}", worldServerPort));
+            Log.Debug(String.Format("m_nTimestamp = {0}", timestamp));
+
+            OnWorldEnterSuccess(this, null);
+        }
+
+        public void WorldEnter(int characterSlotNumber)
+        {
+            var request = new Lobby.GC2LS_ASK_WORLD_ENTER(characterSlotNumber);
+            SendPacket(request);
+        }
+
+        public class WorldInfo
+        {
+            public int UID { get; set; }
+            public string Name { get; set; }
+            public int Status { get; set; }
+            public int Population { get; set; }
+            public int EnfFaction { get; set; }
+            public int CrimFaction { get; set; }
+            public int PremiumOnly { get; set; }
+            public IPAddress PingIP { get; set; }
+        }
+
+        public void HandleWorldList(ServerPacket packet)
+        {
+            var reader = packet.Reader;
+
+            int returnCode = reader.ReadInt32();
+            if (returnCode != 0)
+            {
+                Log.Error(String.Format("LS2GC_ANS_WORLD_LIST response had invalid return code {0}", returnCode));
+                OnGetWorldListFailed(this, returnCode);
+                return;
+            }
+
+            int numWorlds = reader.ReadInt16();
+            var worlds = new List<WorldInfo>(numWorlds);
+
+            for (int i = 0; i < numWorlds; i++)
+            {
+                var info = new WorldInfo
+                {
+                    UID = reader.ReadInt32(),
+                    Name = reader.ReadUnicodeString(34),
+                    Status = reader.ReadByte(),
+                    Population = reader.ReadByte(),
+                    EnfFaction = reader.ReadByte(),
+                    CrimFaction = reader.ReadByte(),
+                    PremiumOnly = reader.ReadByte(),
+                    PingIP = new IPAddress(reader.ReadBytes(4))
+                };
+
+                worlds.Add(info);
+            }
+
+            OnGetWorldListSuccess(this, worlds);
+        }
+
+        public void GetWorldList()
+        {
+            var worldListReq = new Lobby.GC2LS_ASK_WORLD_LIST();
+            SendPacket(worldListReq);
         }
 
         public void HandleKick(ServerPacket packet)
@@ -265,8 +370,10 @@ namespace APBWatcher
                 Information = reader.ReadUnicodeString()
             };
 
+            Log.Debug(String.Format("m_nReason = {0}", data.Reason));
+            Log.Debug(String.Format("m_szInformation = {0}", data.Information));
+
             OnKick(this, data);
-            // TODO: Disconnect?
         }
 
         public class CharacterInfo
@@ -331,7 +438,7 @@ namespace APBWatcher
             // Decrypt data
             byte[] decryptedData = WinCryptoRSA.DecryptData(m_clientDecryptEngine, encryptedData);
 
-            Console.WriteLine(HexDump(decryptedData));
+           // Console.WriteLine(HexDump(decryptedData));
 
             // Create reader for decrypted data
             var dataReader = new APBBinaryReader(new MemoryStream(decryptedData));
@@ -650,13 +757,13 @@ namespace APBWatcher
         {
             byte[] data = packet.GetDataForSending();
 
-            Log.Debug("Raw packet data:" + Environment.NewLine + HexDump(data));
+            //Log.Debug("Raw packet data:" + Environment.NewLine + HexDump(data));
 
             // Encrypt the packet if needed
             if (m_encryption.Initialized)
             { 
                 m_encryption.EncryptClientData(data, 4, packet.TotalSize - 4); // Don't encrypt size
-                Log.Debug("Encrypted packet data:" + Environment.NewLine + HexDump(data));
+                //Log.Debug("Encrypted packet data:" + Environment.NewLine + HexDump(data));
             }
 
             m_socket.Send(data, 0, packet.TotalSize, SocketFlags.None); // TODO: Make async
@@ -752,13 +859,13 @@ namespace APBWatcher
  * DONE eventOnKick (  int nReason, struct FString sInformation  )
  * DONE eventOnError(  int nMessageId, int nQueryId, int nReturnCode, int nParam1, int nParam2, int nParam3, int nParam4  )
  * DONE eventOnDisconnect
- * eventOnWorldEnterFailed ( int nError )
- * eventOnWorldEnterSuccess ( )
- * eventOnCharacterInfoFailed ( int nError )
- * eventOnCharacterInfoSuccess ( int nSlotNumber )
- * eventOnWorldStatus ( int nWorldUID, int nStatus )
- * eventOnGetWorldListFailed ( int nError )
- * eventOnGetWorldListSuccess ( )
+ * DONE eventOnWorldEnterFailed ( int nError )
+ * DONE eventOnWorldEnterSuccess ( )
+ * DONT CARE eventOnCharacterInfoFailed ( int nError )
+ * DONT CARE eventOnCharacterInfoSuccess ( int nSlotNumber )
+ * DONT CARE eventOnWorldStatus ( int nWorldUID, int nStatus )
+ * DONE eventOnGetWorldListFailed ( int nError )
+ * DONE eventOnGetWorldListSuccess ( )
  * DONE eventOnCharacterList ( )
  * DONE eventOnLoginFailed ( int nError, struct FString sCountryCode )
  * DONE eventOnLoginSuccess ( )

@@ -59,6 +59,8 @@
     <Compile Include="EncryptionProvider.cs" />
     <Compile Include="LobbyClient.cs" />
     <Compile Include="Lobby\GC2LS_ASK_LOGIN.cs" />
+    <Compile Include="Lobby\GC2LS_ASK_WORLD_ENTER.cs" />
+    <Compile Include="Lobby\GC2LS_ASK_WORLD_LIST.cs" />
     <Compile Include="Lobby\GC2LS_KEY_EXCHANGE.cs" />
     <Compile Include="Lobby\GC2LS_LOGIN_PROOF.cs" />
     <Compile Include="Lobby\GC2LS_HARDWARE_INFO.cs" />
