@@ -1,18 +1,13 @@
 ﻿using Org.BouncyCastle.Crypto.Encodings;
-using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace APBWatcher
+namespace APBWatcher.Crypto
 {
-    class WinCryptoRSA
+    internal class WindowsRSA
     {
         public static RsaKeyParameters ReadPublicKeyBlob(BinaryReader reader)
         {
@@ -24,14 +19,14 @@ namespace APBWatcher
 
             if (type != 6 || version != 2 || algId != 0x0000A400)
             {
-                throw new Exception(String.Format("Unexpected public key header (Type = {0}, Version = {1}, AlgId = {2})", type, version, algId));
+                throw new Exception($"Unexpected public key header (Type = {type}, Version = {version}, AlgId = {algId})");
             }
 
             // Read the RSAPUBKEY part
             byte[] magic = reader.ReadBytes(4);
             if (magic[0] != 0x52 || magic[1] != 0x53 || magic[2] != 0x41 || magic[3] != 0x31)
             {
-                throw new Exception(String.Format("Incorrect RSAPUBKEY magic ({0}, {1}, {2}, {3})", magic[0], magic[1], magic[2], magic[3]));
+                throw new Exception($"Incorrect RSAPUBKEY magic ({magic[0]}, {magic[1]}, {magic[2]}, {magic[3]})");
             }
 
             uint bitLength = reader.ReadUInt32();

@@ -42,20 +42,16 @@ namespace APBWatcher.Lobby
                 // Transform values into types the SRP client expects
                 BigInteger serverBInt = new BigInteger(1, serverB, 0, serverBLen);
                 byte[] usernameBytes = Encoding.ASCII.GetBytes(accountId.ToString());
-                byte[] passwordBytes = Encoding.ASCII.GetBytes(client.m_password);
+                byte[] passwordBytes = Encoding.ASCII.GetBytes(client._password);
 
                 // Calculate the client's public value
                 BigInteger clientPub = srpClient.GenerateClientCredentials(salt, usernameBytes, passwordBytes);
 
                 srpClient.CalculateSecret(serverBInt);
-                Console.WriteLine(HexDump(srpClient.CalculateSessionKey().ToByteArrayUnsigned()));
-                client.m_srpKey = srpClient.CalculateSessionKey().ToByteArrayUnsigned();
+                client._srpKey = srpClient.CalculateSessionKey().ToByteArrayUnsigned();
 
                 // Calculate the proof that the client knows the secret
                 BigInteger proof = srpClient.CalculateClientEvidenceMessage();
-
-                Console.WriteLine(HexDump(clientPub.ToByteArrayUnsigned()));
-                Console.WriteLine(HexDump(proof.ToByteArrayUnsigned()));
 
                 var loginProof = new GC2LS_LOGIN_PROOF(clientPub.ToByteArrayUnsigned(), proof.ToByteArrayUnsigned());
                 client.SendPacket(loginProof);

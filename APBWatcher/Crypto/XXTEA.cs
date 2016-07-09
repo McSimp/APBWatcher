@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace APBWatcher
+namespace APBWatcher.Crypto
 {
-    class XXTEA
+    internal class XXTEA
     {
         // v is the data, k is the key
         // https://en.wikipedia.org/wiki/XXTEA

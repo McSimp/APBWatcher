@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using APBWatcher.Crypto;
 using APBWatcher.Networking;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Encodings;
@@ -51,7 +52,7 @@ namespace APBWatcher.Lobby
                 Log.Debug($"m_szUnknownVoiceKey = {voiceKey}");
 
                 // Read the server's public key
-                RsaKeyParameters serverPub = WinCryptoRSA.ReadPublicKeyBlob(reader);
+                RsaKeyParameters serverPub = WindowsRSA.ReadPublicKeyBlob(reader);
 
                 // Read the rest of the packet data
                 string countryCode = reader.ReadUnicodeString();
@@ -67,21 +68,21 @@ namespace APBWatcher.Lobby
                 RsaKeyParameters clientPub = (RsaKeyParameters)clientKeyPair.Public;
 
                 // Create the decryption engine for later
-                client.m_clientDecryptEngine = new Pkcs1Encoding(new RsaEngine());
-                client.m_clientDecryptEngine.Init(false, clientKeyPair.Private);
+                client._clientDecryptEngine = new Pkcs1Encoding(new RsaEngine());
+                client._clientDecryptEngine.Init(false, clientKeyPair.Private);
 
                 // Put the client public key into the Microsoft Crypto API format
-                byte[] clientPubBlob = WinCryptoRSA.CreatePublicKeyBlob(clientPub);
+                byte[] clientPubBlob = WindowsRSA.CreatePublicKeyBlob(clientPub);
 
                 // Create encryption engine with the server's public key
-                client.m_serverEncryptEngine = new Pkcs1Encoding(new RsaEngine());
-                client.m_serverEncryptEngine.Init(true, serverPub);
+                client._serverEncryptEngine = new Pkcs1Encoding(new RsaEngine());
+                client._serverEncryptEngine.Init(true, serverPub);
 
                 // Encrypt the client key blob to send to the server
-                byte[] encryptedClientKey = WinCryptoRSA.EncryptData(client.m_serverEncryptEngine, clientPubBlob);
+                byte[] encryptedClientKey = WindowsRSA.EncryptData(client._serverEncryptEngine, clientPubBlob);
 
                 // Use the SRP key we calculated before
-                client.SetEncryptionKey(client.m_srpKey);
+                client.SetEncryptionKey(client._srpKey);
 
                 var keyExchange = new GC2LS_KEY_EXCHANGE(encryptedClientKey);
                 client.SendPacket(keyExchange);

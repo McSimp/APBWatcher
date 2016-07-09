@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using APBWatcher.Crypto;
 using APBWatcher.Networking;
 
 namespace APBWatcher.Lobby
@@ -25,9 +26,7 @@ namespace APBWatcher.Lobby
                 byte[] encryptedData = reader.ReadBytes(encryptedDataSize);
 
                 // Decrypt data
-                byte[] decryptedData = WinCryptoRSA.DecryptData(client.m_clientDecryptEngine, encryptedData);
-
-                // Console.WriteLine(HexDump(decryptedData));
+                byte[] decryptedData = WindowsRSA.DecryptData(client._clientDecryptEngine, encryptedData);
 
                 // Create reader for decrypted data
                 var dataReader = new APBBinaryReader(new MemoryStream(decryptedData));
@@ -36,7 +35,8 @@ namespace APBWatcher.Lobby
                 if (queryLanguage != "WQL")
                 {
                     Log.Warn($"Unexpected query language for WMI request ({queryLanguage})");
-                    return; // TODO: Disconnect or something
+                    client.Disconnect();
+                    return;
                 }
 
                 int numSections = dataReader.ReadInt32();
@@ -69,7 +69,7 @@ namespace APBWatcher.Lobby
 
                     Log.Info($"WMI Query: Section={sectionName}, SkipHash={skipHash}, Query=SELECT {selectClause} {fromClause}");
 
-                    byte[] hash = client.m_hardwareStore.BuildWmiSectionAndHash(hwWriter, sectionName, selectClause, fromClause, (skipHash == 1));
+                    byte[] hash = client._hardwareStore.BuildWmiSectionAndHash(hwWriter, sectionName, selectClause, fromClause, (skipHash == 1));
                     if (hash != null)
                     {
                         hashes.Add(hash);
@@ -89,24 +89,24 @@ namespace APBWatcher.Lobby
                 // Now we need to prepare the BFP section, which in APB is done with similar code to that at https://github.com/cavaliercoder/sysinv/
                 StringBuilder bfpBuilder = new StringBuilder();
                 XmlWriter bfpWriter = XmlWriter.Create(bfpBuilder, settings);
-                client.m_hardwareStore.BuildBfpSection(bfpWriter);
+                client._hardwareStore.BuildBfpSection(bfpWriter);
                 bfpWriter.Flush();
 
                 // Generate the hash for the BFP section
-                byte[] bfpHash = client.m_hardwareStore.BuildBfpHash();
+                byte[] bfpHash = client._hardwareStore.BuildBfpHash();
 
                 // Generate the Windows information section
-                byte[] windowsInfo = client.m_hardwareStore.BuildWindowsInfo();
+                byte[] windowsInfo = client._hardwareStore.BuildWindowsInfo();
 
                 // Encrypt the BFP and HW sections with our public key
                 byte[] hwUnicodeData = Encoding.Unicode.GetBytes(hwBuilder.ToString());
                 byte[] bfpUnicodeData = Encoding.Unicode.GetBytes(bfpBuilder.ToString());
 
-                byte[] encryptedHWData = WinCryptoRSA.EncryptData(client.m_serverEncryptEngine, hwUnicodeData);
-                byte[] encryptedBFPData = WinCryptoRSA.EncryptData(client.m_serverEncryptEngine, bfpUnicodeData);
+                byte[] encryptedHWData = WindowsRSA.EncryptData(client._serverEncryptEngine, hwUnicodeData);
+                byte[] encryptedBFPData = WindowsRSA.EncryptData(client._serverEncryptEngine, bfpUnicodeData);
 
                 // Construct and send the response!
-                var hardwareInfo = new GC2LS_HARDWARE_INFO(windowsInfo, 0, 0, client.m_hardwareStore.BfpVersion, bfpHash, hashBlock, encryptedBFPData, encryptedHWData);
+                var hardwareInfo = new GC2LS_HARDWARE_INFO(windowsInfo, 0, 0, client._hardwareStore.BfpVersion, bfpHash, hashBlock, encryptedBFPData, encryptedHWData);
                 client.SendPacket(hardwareInfo);
             }
         }

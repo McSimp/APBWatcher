@@ -11,10 +11,6 @@ using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Math;
 using System.IO;
-using Org.BouncyCastle.Crypto.Agreement.Srp;
-using Org.BouncyCastle.Security;
-using Org.BouncyCastle.Crypto.Digests;
-using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Encodings;
@@ -204,8 +200,10 @@ namespace APBWatcher
             string password = file.ReadLine();
             file.Close();
 
+            var hw = new HardwareStore("hw.yml");
+
             ///*
-            var lc = new LobbyClient(username, password);
+            var lc = new LobbyClient(username, password, hw);
             lc.OnConnectSuccess += lc_OnConnectSuccess;
             lc.OnConnectFailed += lc_OnConnectFailed;
             lc.OnDisconnect += lc_OnDisconnect;
@@ -304,10 +302,6 @@ namespace APBWatcher
 
             // Calculate the proof that the client knows the secret
             BigInteger proof = srpClient.CalculateClientEvidenceMessage();
-
-            Console.WriteLine(LobbyClient.HexDump(clientPub.ToByteArrayUnsigned()));
-            Console.WriteLine(LobbyClient.HexDump(proof.ToByteArrayUnsigned()));
-            Console.WriteLine(LobbyClient.HexDump(key));
         }
 
         static void lc_OnDisconnect(object sender, EventArgs e)

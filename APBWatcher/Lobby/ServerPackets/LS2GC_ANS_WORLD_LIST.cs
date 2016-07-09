@@ -33,14 +33,14 @@ namespace APBWatcher.Lobby
                 {
                     var info = new WorldInfo
                     {
-                        UID = reader.ReadInt32(),
+                        Uid = reader.ReadInt32(),
                         Name = reader.ReadUnicodeString(34),
                         Status = reader.ReadByte(),
                         Population = reader.ReadByte(),
                         EnfFaction = reader.ReadByte(),
                         CrimFaction = reader.ReadByte(),
                         PremiumOnly = reader.ReadByte(),
-                        PingIP = new IPAddress(reader.ReadBytes(4))
+                        PingIp = new IPAddress(reader.ReadBytes(4))
                     };
 
                     worlds.Add(info);

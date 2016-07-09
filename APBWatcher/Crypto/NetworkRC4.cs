@@ -9,7 +9,7 @@ using Org.BouncyCastle.Crypto.Parameters;
 
 namespace APBWatcher.Crypto
 {
-    class NetworkRc4
+    internal class NetworkRc4
     {
         private readonly RC4Engine _serverToClient = new RC4Engine();
         private readonly RC4Engine _clientToServer = new RC4Engine();

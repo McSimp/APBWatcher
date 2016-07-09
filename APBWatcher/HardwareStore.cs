@@ -9,7 +9,7 @@ using YamlDotNet.Serialization;
 
 namespace APBWatcher
 {
-    class HardwareStore
+    public class HardwareStore
     {
         private class WmiSection
         {

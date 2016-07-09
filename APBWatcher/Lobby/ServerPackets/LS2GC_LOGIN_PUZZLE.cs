@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+using APBWatcher.Crypto;
 using APBWatcher.Networking;
 
 namespace APBWatcher.Lobby
@@ -85,7 +81,7 @@ namespace APBWatcher.Lobby
 
                 Log.Info($"Login puzzle solved: answer={puzzleSolution}");
 
-                var askLogin = new GC2LS_ASK_LOGIN(puzzleSolution, client.m_username, 0);
+                var askLogin = new GC2LS_ASK_LOGIN(puzzleSolution, client._username, 0);
                 client.SendPacket(askLogin);
             }
         }

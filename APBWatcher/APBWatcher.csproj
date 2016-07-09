@@ -98,6 +98,7 @@
     <Compile Include="ProxySocket\Socks4Handler.cs" />
     <Compile Include="ProxySocket\Socks5Handler.cs" />
     <Compile Include="ProxySocket\SocksHandler.cs" />
+    <Compile Include="Util.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
@@ -105,9 +106,9 @@
     </None>
     <None Include="packages.config" />
     <Compile Include="Crypto\WeakSrp6Client.cs" />
-    <Compile Include="WinCryptoRSA.cs" />
+    <Compile Include="Crypto\WindowsRSA.cs" />
     <Compile Include="HardwareStore.cs" />
-    <Compile Include="XXTEA.cs" />
+    <Compile Include="Crypto\XXTEA.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
