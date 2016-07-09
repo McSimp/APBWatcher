@@ -36,24 +36,15 @@ namespace APBWatcher.Lobby
         LS2GC_ANS_WORLD_ENTER = 2013,
     }
 
-    class LobbyClient
+    class LobbyClient : APBClient
     {
-        private const int RECV_BUFFER_SIZE = 65535;
-
         private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        ProxySocket m_socket;
-        byte[] m_recvBuffer = new byte[RECV_BUFFER_SIZE];
-        int m_receivedLength = 0;
-        EncryptionProvider m_encryption = new EncryptionProvider();
         byte[] m_srpKey = null;
         Pkcs1Encoding m_clientDecryptEngine = null;
         Pkcs1Encoding m_serverEncryptEngine = null;
         HardwareStore m_hardwareStore = null;
 
-        public event EventHandler OnConnectSuccess = delegate { };
-        public event EventHandler<Exception> OnConnectFailed = delegate { };
-        public event EventHandler OnDisconnect = delegate { };
         public event EventHandler<ErrorData> OnError = delegate { };
         public event EventHandler<int> OnPuzzleFailed = delegate { };
         public event EventHandler<LoginFailedData> OnLoginFailed = delegate { };
@@ -75,128 +66,8 @@ namespace APBWatcher.Lobby
             m_hardwareStore = new HardwareStore("hw.yml");
         }
 
-        private void ConnectInternal(string host, int port)
+        protected override void HandlePacket(ServerPacket packet)
         {
-            Log.Info(String.Format("Connecting to {0}:{1}", host, port));
-            m_socket.BeginConnect(host, port, new AsyncCallback(ConnectCallback), null);
-        }
-
-        public void Connect(string host, int port)
-        {
-            m_socket = new ProxySocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            ConnectInternal(host, port);
-        }
-
-        public void ConnectProxy(string host, int port, string proxyIP, int proxyPort, string proxyUsername, string proxyPassword)
-        {
-            m_socket = new ProxySocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            m_socket.ProxyEndPoint = new IPEndPoint(IPAddress.Parse(proxyIP), proxyPort);
-            m_socket.ProxyType = ProxyTypes.Socks5;
-            if (proxyUsername != null && proxyPassword != null)
-            {
-                m_socket.ProxyUser = proxyUsername;
-                m_socket.ProxyPass = proxyPassword;
-            }
-            
-            ConnectInternal(host, port);
-        }
-
-        private void ConnectCallback(IAsyncResult ar)
-        {
-            try
-            {
-                // Finish connecting
-                m_socket.EndConnect(ar);
-                Log.Info("Successfully connected");
-                OnConnectSuccess(this, null);
-
-                // Start receiving
-                BeginReceive();
-            }
-            catch (Exception e)
-            {
-                Log.Error("Failed to connect", e);
-                OnConnectFailed(this, e);
-            }
-        }
-
-        private void BeginReceive()
-        {
-            m_socket.BeginReceive(m_recvBuffer, m_receivedLength, m_recvBuffer.Length - m_receivedLength, SocketFlags.None, ReceiveCallback, null);
-        }
-
-        private void Disconnect()
-        {
-            if (m_socket == null)
-            {
-                return;
-            }
-
-            try
-            {
-                m_socket.Disconnect(false);
-                m_socket.Close();
-                m_socket = null;
-            }
-            catch (Exception e)
-            {
-                Log.Warn("Error occurred while disconnecting from socket", e);
-            }
-
-            OnDisconnect(this, null);
-        }
-
-        private void ReceiveCallback(IAsyncResult ar)
-        {
-            try
-            {
-                int length = m_socket.EndReceive(ar);
-                if (length <= 0)
-                {
-                    Log.Warn(String.Format("Received invalid packet length {0}, disconnecting", length));
-                    Disconnect();
-                    return;
-                }
-
-                Log.Debug(String.Format("Received packet, length={0}", length));
-                m_receivedLength += length;
-
-                TryParsePacket();
-
-                if (m_socket != null)
-                {
-                    BeginReceive();
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Warn("Exception occurred while receiving, disconnecting", e);
-                Disconnect();
-            }
-        }
-
-        private void TryParsePacket()
-        {
-            int size = BitConverter.ToInt32(m_recvBuffer, 0);
-            if (size > m_receivedLength)
-            {
-                Log.Debug(String.Format("Not enough data to construct packet (Have {0}, need {1})", m_receivedLength, size));
-                return;
-            }
-
-            // Construct new packet
-            Log.Debug(String.Format("Size field = {0}", size));
-
-            // Decrypt packet if need be
-            if (m_encryption.Initialized)
-            {
-                m_encryption.DecryptServerData(m_recvBuffer, 4, size - 4);
-            }
-
-            ServerPacket packet = new ServerPacket(m_recvBuffer, 4, size - 4);
-
-            m_receivedLength -= size;
-
             if (packet.OpCode == (uint)LobbyOpCodes.LS2GC_LOGIN_PUZZLE)
             {
                 Log.Info("Receive [LS2GC_LOGIN_PUZZLE]");
@@ -530,7 +401,7 @@ namespace APBWatcher.Lobby
             byte[] encryptedClientKey = WinCryptoRSA.EncryptData(m_serverEncryptEngine, clientPubBlob);
 
             // Use the SRP key we calculated before
-            m_encryption.SetKey(m_srpKey);
+            SetEncryptionKey(m_srpKey);
 
             var keyExchange = new ClientPackets.GC2LS_KEY_EXCHANGE(encryptedClientKey);
             SendPacket(keyExchange);
@@ -656,7 +527,7 @@ namespace APBWatcher.Lobby
             if (unknown > 0)
             {
                 byte[] encryptionKey = reader.ReadBytes(8);
-                m_encryption.SetKey(encryptionKey);
+                SetEncryptionKey(encryptionKey);
 
                 uint[] uintEncryptionKey = new uint[2];
                 uintEncryptionKey[0] = BitConverter.ToUInt32(encryptionKey, 0);
@@ -698,22 +569,6 @@ namespace APBWatcher.Lobby
 
             var askLogin = new ClientPackets.GC2LS_ASK_LOGIN(puzzleSolution, m_username, 0);
             SendPacket(askLogin);
-        }
-
-        private void SendPacket(ClientPacket packet)
-        {
-            byte[] data = packet.GetDataForSending();
-
-            //Log.Debug("Raw packet data:" + Environment.NewLine + HexDump(data));
-
-            // Encrypt the packet if needed
-            if (m_encryption.Initialized)
-            { 
-                m_encryption.EncryptClientData(data, 4, packet.TotalSize - 4); // Don't encrypt size
-                //Log.Debug("Encrypted packet data:" + Environment.NewLine + HexDump(data));
-            }
-
-            m_socket.Send(data, 0, packet.TotalSize, SocketFlags.None); // TODO: Make async
         }
 
         private void SolveLoginPuzzle(uint[] v, uint[] k, byte unknown)

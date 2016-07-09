@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using APBWatcher.Crypto;
 using Org.BouncyCastle.Crypto.Encodings;
 using Org.Mentalis.Network.ProxySocket;
 
@@ -19,7 +20,7 @@ namespace APBWatcher.Networking
         private ProxySocket _socket;
         private byte[] _recvBuffer = new byte[RecvBufferSize];
         private int _receivedLength = 0;
-        private EncryptionProvider m_encryption = new EncryptionProvider();
+        private NetworkRc4 _encryption = new NetworkRc4();
 
         public event EventHandler OnConnectSuccess = delegate { };
         public event EventHandler<Exception> OnConnectFailed = delegate { };
@@ -81,7 +82,7 @@ namespace APBWatcher.Networking
             _socket.BeginReceive(_recvBuffer, _receivedLength, _recvBuffer.Length - _receivedLength, SocketFlags.None, ReceiveCallback, null);
         }
 
-        private void Disconnect()
+        public void Disconnect()
         {
             if (_socket == null)
             {
@@ -144,15 +145,38 @@ namespace APBWatcher.Networking
             Log.Debug($"Size field = {size}");
 
             // Decrypt packet if need be
-            if (m_encryption.Initialized)
+            if (_encryption.Initialized)
             {
-                m_encryption.DecryptServerData(_recvBuffer, 4, size - 4);
+                _encryption.DecryptServerData(_recvBuffer, 4, size - 4);
             }
 
             var packet = new ServerPacket(_recvBuffer, 4, size - 4);
             _receivedLength -= size;
 
-            // HANDLE PACKET
+            HandlePacket(packet);
+        }
+
+        protected abstract void HandlePacket(ServerPacket packet);
+
+        public void SetEncryptionKey(byte[] key)
+        {
+            _encryption.SetKey(key);
+        }
+
+        public void SendPacket(ClientPacket packet)
+        {
+            byte[] data = packet.GetDataForSending();
+
+            //Log.Debug("Raw packet data:" + Environment.NewLine + HexDump(data));
+
+            // Encrypt the packet if needed
+            if (_encryption.Initialized)
+            {
+                _encryption.EncryptClientData(data, 4, packet.TotalSize - 4); // Don't encrypt size
+                //Log.Debug("Encrypted packet data:" + Environment.NewLine + HexDump(data));
+            }
+
+            _socket.Send(data, 0, packet.TotalSize, SocketFlags.None); // TODO: Make async
         }
     }
 }

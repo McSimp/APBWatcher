@@ -9,9 +9,10 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>APBWatcher</RootNamespace>
     <AssemblyName>APBWatcher</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -57,7 +58,7 @@
     <Compile Include="Networking\APBClient.cs" />
     <Compile Include="Networking\ClientPacket.cs" />
     <Compile Include="CryptoTest.cs" />
-    <Compile Include="EncryptionProvider.cs" />
+    <Compile Include="Crypto\NetworkRC4.cs" />
     <Compile Include="Lobby\CharacterInfo.cs" />
     <Compile Include="Lobby\ErrorData.cs" />
     <Compile Include="Lobby\KickData.cs" />
@@ -71,7 +72,6 @@
     <Compile Include="Lobby\LoginFailedData.cs" />
     <Compile Include="Lobby\WorldInfo.cs" />
     <Compile Include="LoginStatuses.cs" />
-    <Compile Include="RC4Provider.cs" />
     <Compile Include="Networking\ServerPacket.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -96,7 +96,6 @@
     <Compile Include="XXTEA.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Crypto\" />
     <Folder Include="Lobby\ServerPackets\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
