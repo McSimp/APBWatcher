@@ -26,6 +26,7 @@ using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using System.Xml;
+using APBWatcher.Lobby;
 
 namespace APBWatcher
 {
@@ -173,16 +174,16 @@ namespace APBWatcher
             XmlWriterSettings settings = new XmlWriterSettings();
             settings.OmitXmlDeclaration = true;
             XmlWriter writer = XmlWriter.Create(test, settings);
-            uhh.BuildWMISectionAndHash(writer, "CPU", "ProcessorId,Manufacturer,Name,Description,Revision,L2CacheSize,@AddressWidth", "FROM Win32_Processor", false);
+            uhh.BuildWmiSectionAndHash(writer, "CPU", "ProcessorId,Manufacturer,Name,Description,Revision,L2CacheSize,@AddressWidth", "FROM Win32_Processor", false);
             writer.Flush();
             string res = test.ToString();
             var asdf = uhh.BuildWindowsInfo();
             StringBuilder test2 = new StringBuilder();
             XmlWriter writer2 = XmlWriter.Create(test2, settings);
-            uhh.BuildBFPSection(writer2);
+            uhh.BuildBfpSection(writer2);
             writer2.Flush();
             string res2 = test2.ToString();
-            byte[] bfpHash = uhh.BuildBFPHash();
+            byte[] bfpHash = uhh.BuildBfpHash();
         }
 
         static void Main(string[] args)
@@ -212,7 +213,7 @@ namespace APBWatcher
             lc.OnGetWorldListSuccess += lc_OnGetWorldListSuccess;
             lc.OnWorldEnterSuccess += lc_OnWorldEnterSuccess;
             state = ClientState.kCLIENT_STATE_LOGINSERVER_CONNECT_IN_PROGRESS;
-            lc.ConnectProxy(host, port, "127.0.0.1", 9050, null, null);
+            lc.ConnectProxy(host, port, "127.0.0.1", 9150, null, null);
             //lc.Connect(host, port);
             //*/
             // TODO: Set a timeout for receiving the login salt
@@ -234,14 +235,14 @@ namespace APBWatcher
             Console.WriteLine("World enter success!");
         }
 
-        static void lc_OnGetWorldListSuccess(object sender, List<LobbyClient.WorldInfo> e)
+        static void lc_OnGetWorldListSuccess(object sender, List<WorldInfo> e)
         {
             Console.WriteLine("Worlds received!");
             var lc = (LobbyClient)sender;
             lc.WorldEnter(0);
         }
 
-        static void lc_OnCharacterList(object sender, List<LobbyClient.CharacterInfo> e)
+        static void lc_OnCharacterList(object sender, List<CharacterInfo> e)
         {
             state = ClientState.kCLIENT_STATE_CHARACTER_LIST_RECEIVED;
             Console.Write("Characters received!");

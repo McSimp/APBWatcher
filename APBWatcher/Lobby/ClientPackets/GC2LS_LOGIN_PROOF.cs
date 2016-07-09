@@ -3,16 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using APBWatcher.Networking;
 
-namespace APBWatcher.Lobby
+namespace APBWatcher.Lobby.ClientPackets
 {
-    class GC2LS_LOGIN_PROOF : ClientPacket
+    internal class GC2LS_LOGIN_PROOF : ClientPacket
     {
         public GC2LS_LOGIN_PROOF(byte[] clientPub, byte[] proof)
         {
             OpCode = 1005;
 
-            AllocateData(90);
+            AllocateData(94);
             Writer.Write(clientPub);
             // clientPub has 64 bytes allocated for it, so write zeros to the rest
             for (int i = clientPub.Length; i < 64; i++)

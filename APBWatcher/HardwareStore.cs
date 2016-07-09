@@ -2,34 +2,30 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 using System.Xml;
 using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 namespace APBWatcher
 {
     class HardwareStore
     {
-        class WMISection
+        private class WmiSection
         {
             public string Select { get; set; }
             public string From { get; set; }
             public List<string> NumericFields { get; set; }
             public List<Dictionary<string, string>> Data { get; set; }
 
-            public WMISection()
+            public WmiSection()
             {
                 NumericFields = new List<string>();
                 Data = new List<Dictionary<string, string>>();
             }
         }
 
-        class WindowsVersionInfo
+        private class WindowsVersionInfo
         {
             public int MajorVersion { get; set; }
             public int MinorVersion { get; set; }
@@ -37,69 +33,63 @@ namespace APBWatcher
             public int BuildNumber { get; set; }
         }
 
-        class HardwareDB
+        private class HardwareDb
         {
-            public Dictionary<string, WMISection> WMISections { get; set; }
-            public string SMBIOSVersion { get; set; }
-            public int BFPVersion { get; set; }
-            public Dictionary<string, Dictionary<string, string>> BFPSections { get; set; }
-            public string HDDGuid { get; set; }
+            public Dictionary<string, WmiSection> WmiSections { get; set; }
+            public string SmbiosVersion { get; set; }
+            public int BfpVersion { get; set; }
+            public Dictionary<string, Dictionary<string, string>> BfpSections { get; set; }
+            public string HddGuid { get; set; }
             public WindowsVersionInfo WindowsVersion { get; set; }
             public uint InstallDate { get; set; }
         }
 
         private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         
-        private HardwareDB m_hardwareDB;
+        private readonly HardwareDb _hardwareDb;
 
-        public int BFPVersion
-        {
-            get
-            {
-                return m_hardwareDB.BFPVersion;
-            }
-        }
+        public int BfpVersion => _hardwareDb.BfpVersion;
 
         public HardwareStore(string storeFile)
         {
             using (TextReader reader = File.OpenText(storeFile))
             {
                 var deserializer = new Deserializer();
-                m_hardwareDB = deserializer.Deserialize<HardwareDB>(reader);
+                _hardwareDb = deserializer.Deserialize<HardwareDb>(reader);
             }
         }
 
-        private WMISection GetSection(string sectionName)
+        private WmiSection GetSection(string sectionName)
         {
             // Ensure we have data on the section
-            if (!m_hardwareDB.WMISections.ContainsKey(sectionName))
+            if (!_hardwareDb.WmiSections.ContainsKey(sectionName))
             {
-                throw new Exception(String.Format("No WMI data present for {0}", sectionName));
+                throw new Exception($"No WMI data present for {sectionName}");
             }
 
-            return m_hardwareDB.WMISections[sectionName];
+            return _hardwareDb.WmiSections[sectionName];
         }
 
         public byte[] BuildWindowsInfo()
         {
-            byte[] data = new byte[33];
-            Buffer.BlockCopy(BitConverter.GetBytes(m_hardwareDB.WindowsVersion.MajorVersion), 0, data, 0, 4);
-            Buffer.BlockCopy(BitConverter.GetBytes(m_hardwareDB.WindowsVersion.MinorVersion), 0, data, 4, 4);
-            Buffer.BlockCopy(BitConverter.GetBytes(m_hardwareDB.WindowsVersion.ProductType), 0, data, 8, 1);
-            Buffer.BlockCopy(BitConverter.GetBytes(m_hardwareDB.WindowsVersion.BuildNumber), 0, data, 9, 4);
-            Buffer.BlockCopy(BitConverter.GetBytes(m_hardwareDB.InstallDate), 0, data, 13, 4);
-            Buffer.BlockCopy(Guid.Parse(m_hardwareDB.HDDGuid).ToByteArray(), 0, data, 17, 16);
+            var data = new byte[33];
+            Buffer.BlockCopy(BitConverter.GetBytes(_hardwareDb.WindowsVersion.MajorVersion), 0, data, 0, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(_hardwareDb.WindowsVersion.MinorVersion), 0, data, 4, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(_hardwareDb.WindowsVersion.ProductType), 0, data, 8, 1);
+            Buffer.BlockCopy(BitConverter.GetBytes(_hardwareDb.WindowsVersion.BuildNumber), 0, data, 9, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(_hardwareDb.InstallDate), 0, data, 13, 4);
+            Buffer.BlockCopy(Guid.Parse(_hardwareDb.HddGuid).ToByteArray(), 0, data, 17, 16);
 
             return data;
         }
 
-        public void BuildBFPSection(XmlWriter writer)
+        public void BuildBfpSection(XmlWriter writer)
         {
             writer.WriteStartElement("BFP");
-            writer.WriteAttributeString("bfp_v", m_hardwareDB.BFPVersion.ToString());
-            writer.WriteAttributeString("smb_v", m_hardwareDB.SMBIOSVersion);
+            writer.WriteAttributeString("bfp_v", _hardwareDb.BfpVersion.ToString());
+            writer.WriteAttributeString("smb_v", _hardwareDb.SmbiosVersion);
 
-            foreach (var section in m_hardwareDB.BFPSections)
+            foreach (var section in _hardwareDb.BfpSections)
             {
                 var sectionName = section.Key;
                 var data = section.Value;
@@ -118,7 +108,8 @@ namespace APBWatcher
 
                     if (sectionName == "BIOS" && entryName == "RomSize")
                     {
-                        writer.WriteElementString("RomSize", String.Format("Bios Rom Size: {0} ({1}K) == 64K * ({2}+1)", entryData, (Int32.Parse(entryData)+1)*64, entryData));
+                        var size = (int.Parse(entryData) + 1)*64;
+                        writer.WriteElementString("RomSize", $"Bios Rom Size: {entryData} ({size}K) == 64K * ({entryData}+1)");
                     }
                     else
                     {
@@ -132,11 +123,11 @@ namespace APBWatcher
             writer.WriteEndElement();
         }
 
-        public byte[] BuildBFPHash()
+        public byte[] BuildBfpHash()
         {
-            MemoryStream memStream = new MemoryStream(512);
-            BinaryWriter writer = new BinaryWriter(memStream);
-            var bfp = m_hardwareDB.BFPSections;
+            var memStream = new MemoryStream(512);
+            var writer = new BinaryWriter(memStream);
+            var bfp = _hardwareDb.BfpSections;
 
             foreach (var section in bfp)
             {
@@ -154,7 +145,7 @@ namespace APBWatcher
 
                         if (sectionName == "BIOS" && name == "RomSize")
                         {
-                            writer.Write(Byte.Parse(data));
+                            writer.Write(byte.Parse(data));
                         }
                         else if (sectionName == "SYSINFO" && name == "UUID")
                         {
@@ -162,11 +153,11 @@ namespace APBWatcher
                         }
                         else if ((sectionName == "CHASSIS" || sectionName == "PROCESSOR") && name == "Type")
                         {
-                            writer.Write(Byte.Parse(data));
+                            writer.Write(byte.Parse(data));
                         }
                         else if (sectionName == "PROCESSOR" && name == "Family")
                         {
-                            writer.Write(Byte.Parse(data));
+                            writer.Write(byte.Parse(data));
                         }
                         else if (sectionName == "PROCESSOR" && name == "RawId")
                         {
@@ -174,11 +165,11 @@ namespace APBWatcher
                         }
                         else if (sectionName == "MEMSLOTS" && name == "MaxCapacity")
                         {
-                            writer.Write(UInt64.Parse(data));
+                            writer.Write(ulong.Parse(data));
                         }
                         else if (sectionName == "MEMSLOTS" && name == "NumMemoryDevices")
                         {
-                            writer.Write(UInt16.Parse(data));
+                            writer.Write(ushort.Parse(data));
                         }
                         else
                         {
@@ -198,15 +189,15 @@ namespace APBWatcher
             return hash;
         }
 
-        public byte[] BuildWMISectionAndHash(XmlWriter writer, string sectionName, string select, string from, bool skipHash)
+        public byte[] BuildWmiSectionAndHash(XmlWriter writer, string sectionName, string select, string from, bool skipHash)
         {
-            WMISection section = GetSection(sectionName);
+            WmiSection section = GetSection(sectionName);
             
             // Check if the SELECT and FROM clauses are the same in our static data and the requested data
             // It's not the end of the world if they're different, but we might send some dodgy data
             if (section.Select != select || section.From != from)
             {
-                Log.Warn(String.Format("Queries do not match for '{0}' section: request=SELECT {1}, saved=SELECT {2}", sectionName, section.Select + section.From, select + from));
+                Log.Warn($"Queries do not match for '{sectionName}' section: request=SELECT {section.Select + section.From}, saved=SELECT {select + from}");
             }
 
             // Define storage for WMI values to be hashed
@@ -241,7 +232,7 @@ namespace APBWatcher
                     // Skip the field if we don't have data for it
                     if (!dataEntry.ContainsKey(actualFieldName))
                     {
-                        Log.Warn(String.Format("Missing field '{0}' from a data entry in the '{1}' section", fieldName, sectionName));
+                        Log.Warn($"Missing field '{fieldName}' from a data entry in the '{sectionName}' section");
                         continue;
                     }
 
@@ -258,7 +249,7 @@ namespace APBWatcher
                     {
                         if (section.NumericFields.Contains(fieldName))
                         {
-                            numericValues.Add(Int32.Parse(fieldValue));   
+                            numericValues.Add(int.Parse(fieldValue));   
                         }
                         else
                         {

@@ -18,8 +18,9 @@ using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Parameters;
 using System.IO;
 using System.Xml;
+using APBWatcher.Networking;
 
-namespace APBWatcher
+namespace APBWatcher.Lobby
 {
     enum LobbyOpCodes : uint
     {
@@ -33,29 +34,6 @@ namespace APBWatcher
         LS2GC_CHARACTER_LIST = 2006,
         LS2GC_ANS_WORLD_LIST = 2008,
         LS2GC_ANS_WORLD_ENTER = 2013,
-    }
-
-    struct ErrorData
-    {
-        public uint MessageId;
-        public ushort QueryId;
-        public uint ReturnCode;
-        public uint Param1;
-        public uint Param2;
-        public uint Param3;
-        public uint Param4;
-    }
-
-    struct LoginFailedData
-    {
-        public uint ReturnCode;
-        public string CountryCode;
-    }
-
-    struct KickData
-    {
-        public uint Reason;
-        public string Information;
     }
 
     class LobbyClient
@@ -144,7 +122,7 @@ namespace APBWatcher
 
         private void BeginReceive()
         {
-            m_socket.BeginReceive(m_recvBuffer, m_receivedLength, m_recvBuffer.Length - m_receivedLength, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
+            m_socket.BeginReceive(m_recvBuffer, m_receivedLength, m_recvBuffer.Length - m_receivedLength, SocketFlags.None, ReceiveCallback, null);
         }
 
         private void Disconnect()
@@ -216,7 +194,6 @@ namespace APBWatcher
             }
 
             ServerPacket packet = new ServerPacket(m_recvBuffer, 4, size - 4);
-            //Log.Debug(Environment.NewLine + HexDump(packet.Data));
 
             m_receivedLength -= size;
 
@@ -304,20 +281,8 @@ namespace APBWatcher
 
         public void WorldEnter(int characterSlotNumber)
         {
-            var request = new Lobby.GC2LS_ASK_WORLD_ENTER(characterSlotNumber);
+            var request = new ClientPackets.GC2LS_ASK_WORLD_ENTER(characterSlotNumber);
             SendPacket(request);
-        }
-
-        public class WorldInfo
-        {
-            public int UID { get; set; }
-            public string Name { get; set; }
-            public int Status { get; set; }
-            public int Population { get; set; }
-            public int EnfFaction { get; set; }
-            public int CrimFaction { get; set; }
-            public int PremiumOnly { get; set; }
-            public IPAddress PingIP { get; set; }
         }
 
         public void HandleWorldList(ServerPacket packet)
@@ -357,7 +322,7 @@ namespace APBWatcher
 
         public void GetWorldList()
         {
-            var worldListReq = new Lobby.GC2LS_ASK_WORLD_LIST();
+            var worldListReq = new ClientPackets.GC2LS_ASK_WORLD_LIST();
             SendPacket(worldListReq);
         }
 
@@ -374,24 +339,6 @@ namespace APBWatcher
             Log.Debug(String.Format("m_szInformation = {0}", data.Information));
 
             OnKick(this, data);
-        }
-
-        public class CharacterInfo
-        {
-            public enum FactionType : byte
-            {
-                ENFORCER = 1,
-                CRIMINAL = 2
-            }
-
-            public int SlotNumber { get; set; }
-            public FactionType Faction { get; set; }
-            public int WorldStatus { get; set; }
-            public int WorldUID { get; set; }
-            public string WorldName { get; set; }
-            public string CharacterName { get; set; }
-            public int Rating { get; set; }
-            public DateTime LastLogin { get; set; }
         }
 
         public void HandleCharacterList(ServerPacket packet)
@@ -480,7 +427,7 @@ namespace APBWatcher
 
                 Log.Info(String.Format("WMI Query: Section={0}, SkipHash={1}, Query=SELECT {2} {3}", sectionName, skipHash, selectClause, fromClause));
 
-                byte[] hash = m_hardwareStore.BuildWMISectionAndHash(hwWriter, sectionName, selectClause, fromClause, (skipHash == 1));
+                byte[] hash = m_hardwareStore.BuildWmiSectionAndHash(hwWriter, sectionName, selectClause, fromClause, (skipHash == 1));
                 if (hash != null)
                 {
                     hashes.Add(hash);
@@ -500,11 +447,11 @@ namespace APBWatcher
             // Now we need to prepare the BFP section, which in APB is done with similar code to that at https://github.com/cavaliercoder/sysinv/
             StringBuilder bfpBuilder = new StringBuilder();
             XmlWriter bfpWriter = XmlWriter.Create(bfpBuilder, settings);
-            m_hardwareStore.BuildBFPSection(bfpWriter);
+            m_hardwareStore.BuildBfpSection(bfpWriter);
             bfpWriter.Flush();
 
             // Generate the hash for the BFP section
-            byte[] bfpHash = m_hardwareStore.BuildBFPHash();
+            byte[] bfpHash = m_hardwareStore.BuildBfpHash();
 
             // Generate the Windows information section
             byte[] windowsInfo = m_hardwareStore.BuildWindowsInfo();
@@ -517,7 +464,7 @@ namespace APBWatcher
             byte[] encryptedBFPData = WinCryptoRSA.EncryptData(m_serverEncryptEngine, bfpUnicodeData);
 
             // Construct and send the response!
-            var hardwareInfo = new Lobby.GC2LS_HARDWARE_INFO(windowsInfo, 0, 0, m_hardwareStore.BFPVersion, bfpHash, hashBlock, encryptedBFPData, encryptedHWData);
+            var hardwareInfo = new ClientPackets.GC2LS_HARDWARE_INFO(windowsInfo, 0, 0, m_hardwareStore.BfpVersion, bfpHash, hashBlock, encryptedBFPData, encryptedHWData);
             SendPacket(hardwareInfo);
         }
 
@@ -585,7 +532,7 @@ namespace APBWatcher
             // Use the SRP key we calculated before
             m_encryption.SetKey(m_srpKey);
 
-            var keyExchange = new Lobby.GC2LS_KEY_EXCHANGE(encryptedClientKey);
+            var keyExchange = new ClientPackets.GC2LS_KEY_EXCHANGE(encryptedClientKey);
             SendPacket(keyExchange);
 
             OnLoginSuccess(this, null);
@@ -664,7 +611,7 @@ namespace APBWatcher
             Console.WriteLine(HexDump(clientPub.ToByteArrayUnsigned()));
             Console.WriteLine(HexDump(proof.ToByteArrayUnsigned()));
 
-            var loginProof = new Lobby.GC2LS_LOGIN_PROOF(clientPub.ToByteArrayUnsigned(), proof.ToByteArrayUnsigned());
+            var loginProof = new ClientPackets.GC2LS_LOGIN_PROOF(clientPub.ToByteArrayUnsigned(), proof.ToByteArrayUnsigned());
             SendPacket(loginProof);
         }
 
@@ -749,7 +696,7 @@ namespace APBWatcher
 
             Log.Info(String.Format("Login puzzle solved: answer={0}", puzzleSolution));
 
-            var askLogin = new Lobby.GC2LS_ASK_LOGIN(puzzleSolution, m_username, 0);
+            var askLogin = new ClientPackets.GC2LS_ASK_LOGIN(puzzleSolution, m_username, 0);
             SendPacket(askLogin);
         }
 

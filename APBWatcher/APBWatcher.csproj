@@ -54,19 +54,25 @@
   <ItemGroup>
     <Compile Include="APBBinaryReader.cs" />
     <Compile Include="APBBinaryWriter.cs" />
-    <Compile Include="ClientPacket.cs" />
+    <Compile Include="Networking\APBClient.cs" />
+    <Compile Include="Networking\ClientPacket.cs" />
     <Compile Include="CryptoTest.cs" />
     <Compile Include="EncryptionProvider.cs" />
-    <Compile Include="LobbyClient.cs" />
-    <Compile Include="Lobby\GC2LS_ASK_LOGIN.cs" />
-    <Compile Include="Lobby\GC2LS_ASK_WORLD_ENTER.cs" />
-    <Compile Include="Lobby\GC2LS_ASK_WORLD_LIST.cs" />
-    <Compile Include="Lobby\GC2LS_KEY_EXCHANGE.cs" />
-    <Compile Include="Lobby\GC2LS_LOGIN_PROOF.cs" />
-    <Compile Include="Lobby\GC2LS_HARDWARE_INFO.cs" />
+    <Compile Include="Lobby\CharacterInfo.cs" />
+    <Compile Include="Lobby\ErrorData.cs" />
+    <Compile Include="Lobby\KickData.cs" />
+    <Compile Include="Lobby\LobbyClient.cs" />
+    <Compile Include="Lobby\ClientPackets\GC2LS_ASK_LOGIN.cs" />
+    <Compile Include="Lobby\ClientPackets\GC2LS_ASK_WORLD_ENTER.cs" />
+    <Compile Include="Lobby\ClientPackets\GC2LS_ASK_WORLD_LIST.cs" />
+    <Compile Include="Lobby\ClientPackets\GC2LS_KEY_EXCHANGE.cs" />
+    <Compile Include="Lobby\ClientPackets\GC2LS_LOGIN_PROOF.cs" />
+    <Compile Include="Lobby\ClientPackets\GC2LS_HARDWARE_INFO.cs" />
+    <Compile Include="Lobby\LoginFailedData.cs" />
+    <Compile Include="Lobby\WorldInfo.cs" />
     <Compile Include="LoginStatuses.cs" />
     <Compile Include="RC4Provider.cs" />
-    <Compile Include="ServerPacket.cs" />
+    <Compile Include="Networking\ServerPacket.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ProxySocket\AuthMethod.cs" />
@@ -80,12 +86,18 @@
     <Compile Include="ProxySocket\SocksHandler.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="packages.config" />
     <Compile Include="WeakSrp6Client.cs" />
     <Compile Include="WinCryptoRSA.cs" />
     <Compile Include="HardwareStore.cs" />
     <Compile Include="XXTEA.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Crypto\" />
+    <Folder Include="Lobby\ServerPackets\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
