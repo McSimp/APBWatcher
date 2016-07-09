@@ -5,14 +5,17 @@ using System.Text;
 using System.Threading.Tasks;
 using APBWatcher.Networking;
 
-namespace APBWatcher.Lobby.ClientPackets
+namespace APBWatcher.Lobby
 {
-    internal class GC2LS_ASK_WORLD_LIST : ClientPacket
+    public partial class LobbyClient
     {
-        public GC2LS_ASK_WORLD_LIST()
+        private class GC2LS_ASK_WORLD_LIST : ClientPacket
         {
-            OpCode = 1007;
-            AllocateData(8);
+            public GC2LS_ASK_WORLD_LIST()
+            {
+                OpCode = (uint)LobbyOpCode.GC2LS_ASK_WORLD_LIST;
+                AllocateData(8);
+            }
         }
     }
 }

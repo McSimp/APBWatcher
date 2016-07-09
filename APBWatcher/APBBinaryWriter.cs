@@ -7,7 +7,7 @@ using System.IO;
 
 namespace APBWatcher
 {
-    class APBBinaryWriter : BinaryWriter
+    public class APBBinaryWriter : BinaryWriter
     {
         public APBBinaryWriter(Stream output) : base(output) { }
 

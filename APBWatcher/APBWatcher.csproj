@@ -55,7 +55,19 @@
   <ItemGroup>
     <Compile Include="APBBinaryReader.cs" />
     <Compile Include="APBBinaryWriter.cs" />
+    <Compile Include="Lobby\LobbyOpCode.cs" />
+    <Compile Include="Lobby\ServerPackets\LS2GC_ANS_LOGIN_FAILED.cs" />
+    <Compile Include="Lobby\ServerPackets\LS2GC_ANS_LOGIN_SUCCESS.cs" />
+    <Compile Include="Lobby\ServerPackets\LS2GC_ANS_WORLD_ENTER.cs" />
+    <Compile Include="Lobby\ServerPackets\LS2GC_ANS_WORLD_LIST.cs" />
+    <Compile Include="Lobby\ServerPackets\LS2GC_CHARACTER_LIST.cs" />
+    <Compile Include="Lobby\ServerPackets\LS2GC_ERROR.cs" />
+    <Compile Include="Lobby\ServerPackets\LS2GC_KICK.cs" />
+    <Compile Include="Lobby\ServerPackets\LS2GC_LOGIN_PUZZLE.cs" />
+    <Compile Include="Lobby\ServerPackets\LS2GC_LOGIN_SALT.cs" />
+    <Compile Include="Lobby\ServerPackets\LS2GC_WMI_REQUEST.cs" />
     <Compile Include="Networking\APBClient.cs" />
+    <Compile Include="Networking\BasePacketHandler.cs" />
     <Compile Include="Networking\ClientPacket.cs" />
     <Compile Include="CryptoTest.cs" />
     <Compile Include="Crypto\NetworkRC4.cs" />
@@ -72,6 +84,8 @@
     <Compile Include="Lobby\LoginFailedData.cs" />
     <Compile Include="Lobby\WorldInfo.cs" />
     <Compile Include="LoginStatuses.cs" />
+    <Compile Include="Networking\IPacketHandler.cs" />
+    <Compile Include="Networking\PacketHandlerAttribute.cs" />
     <Compile Include="Networking\ServerPacket.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -90,13 +104,10 @@
       <SubType>Designer</SubType>
     </None>
     <None Include="packages.config" />
-    <Compile Include="WeakSrp6Client.cs" />
+    <Compile Include="Crypto\WeakSrp6Client.cs" />
     <Compile Include="WinCryptoRSA.cs" />
     <Compile Include="HardwareStore.cs" />
     <Compile Include="XXTEA.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Lobby\ServerPackets\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

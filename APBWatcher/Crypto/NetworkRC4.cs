@@ -14,7 +14,7 @@ namespace APBWatcher.Crypto
         private readonly RC4Engine _serverToClient = new RC4Engine();
         private readonly RC4Engine _clientToServer = new RC4Engine();
 
-        public bool Initialized { get; private set; }
+        public bool Initialized { get; set; }
 
         public void SetKey(byte[] key)
         {

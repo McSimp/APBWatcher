@@ -26,6 +26,7 @@ using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using System.Xml;
+using APBWatcher.Crypto;
 using APBWatcher.Lobby;
 
 namespace APBWatcher

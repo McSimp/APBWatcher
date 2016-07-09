@@ -5,17 +5,20 @@ using System.Text;
 using System.Threading.Tasks;
 using APBWatcher.Networking;
 
-namespace APBWatcher.Lobby.ClientPackets
+namespace APBWatcher.Lobby
 {
-    internal class GC2LS_KEY_EXCHANGE : ClientPacket
+    public partial class LobbyClient
     {
-        public GC2LS_KEY_EXCHANGE(byte[] encryptedKey)
+        private class GC2LS_KEY_EXCHANGE : ClientPacket
         {
-            OpCode = 1016;
+            public GC2LS_KEY_EXCHANGE(byte[] encryptedKey)
+            {
+                OpCode = (uint)LobbyOpCode.GC2LS_KEY_EXCHANGE;
 
-            AllocateData(268);
-            Writer.Write(0);
-            Writer.Write(encryptedKey);
+                AllocateData(268);
+                Writer.Write(0);
+                Writer.Write(encryptedKey);
+            }
         }
     }
 }

@@ -12,19 +12,25 @@ using Org.Mentalis.Network.ProxySocket;
 
 namespace APBWatcher.Networking
 {
-    abstract class APBClient
+    public abstract class APBClient
     {
         private const int RecvBufferSize = 65535;
         private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private ProxySocket _socket;
         private byte[] _recvBuffer = new byte[RecvBufferSize];
-        private int _receivedLength = 0;
+        private int _receivedLength;
         private NetworkRc4 _encryption = new NetworkRc4();
+        private Dictionary<uint, Tuple<string, Action<APBClient, ServerPacket>>> _packetHandlers = new Dictionary<uint, Tuple<string, Action<APBClient, ServerPacket>>>();
 
         public event EventHandler OnConnectSuccess = delegate { };
         public event EventHandler<Exception> OnConnectFailed = delegate { };
         public event EventHandler OnDisconnect = delegate { };
+
+        public APBClient()
+        {
+            SetupHandlers();
+        }
 
         private void ConnectInternal(string host, int port)
         {
@@ -34,6 +40,8 @@ namespace APBWatcher.Networking
 
         public void Connect(string host, int port)
         {
+            _receivedLength = 0;
+            _encryption.Initialized = false;
             _socket = new ProxySocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             ConnectInternal(host, port);
         }
@@ -72,10 +80,7 @@ namespace APBWatcher.Networking
             }
         }
 
-        protected void PostConnect()
-        {
-
-        }
+        protected void PostConnect() { }
 
         private void BeginReceive()
         {
@@ -156,14 +161,26 @@ namespace APBWatcher.Networking
             HandlePacket(packet);
         }
 
-        protected abstract void HandlePacket(ServerPacket packet);
+        protected void HandlePacket(ServerPacket packet)
+        {
+            if (_packetHandlers.ContainsKey(packet.OpCode))
+            {
+                var handlerData = _packetHandlers[packet.OpCode];
+                Log.Info($"Receive [{handlerData.Item1}]");
+                handlerData.Item2(this, packet);
+            }
+            else
+            {
+                Log.Warn($"Unknown packet received (Opcode = {packet.OpCode})");
+            }
+        }
 
-        public void SetEncryptionKey(byte[] key)
+        protected void SetEncryptionKey(byte[] key)
         {
             _encryption.SetKey(key);
         }
 
-        public void SendPacket(ClientPacket packet)
+        protected void SendPacket(ClientPacket packet)
         {
             byte[] data = packet.GetDataForSending();
 
@@ -177,6 +194,28 @@ namespace APBWatcher.Networking
             }
 
             _socket.Send(data, 0, packet.TotalSize, SocketFlags.None); // TODO: Make async
+        }
+
+        private void SetupHandlers()
+        {
+            Type[] types = GetType().GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public);
+            foreach (Type type in types)
+            {
+                if (!type.IsClass) continue;
+                if (!type.GetInterfaces().Contains(typeof(IPacketHandler))) continue;
+
+                PacketHandlerAttribute attribute = (PacketHandlerAttribute)type.GetCustomAttribute(typeof(PacketHandlerAttribute));
+                if (attribute == null) continue;
+
+                uint opCode = (uint)attribute.OpCode;
+
+                var handlerInstance = Activator.CreateInstance(type);
+                var handlerDel = (Action<APBClient, ServerPacket>)Delegate.CreateDelegate(typeof(Action<APBClient, ServerPacket>), handlerInstance, "HandlePacket");
+
+                _packetHandlers.Add(opCode, Tuple.Create(type.Name, handlerDel));
+
+                Log.Debug($"Registered handler for {type.Name} (OpCode = {opCode})");
+            }
         }
     }
 }

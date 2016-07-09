@@ -7,7 +7,7 @@ using System.IO;
 
 namespace APBWatcher.Networking
 {
-    class ServerPacket
+    public class ServerPacket
     {
         public byte[] Data { get; }
         public APBBinaryReader Reader { get; }

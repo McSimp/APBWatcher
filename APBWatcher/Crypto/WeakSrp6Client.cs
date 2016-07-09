@@ -4,9 +4,9 @@ using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Crypto.Parameters;
 
-namespace APBWatcher
+namespace APBWatcher.Crypto
 {
-    class WeakSrp6Client : Srp6Client
+    internal class WeakSrp6Client : Srp6Client
     {
         protected byte[] identity;
         protected byte[] salt;

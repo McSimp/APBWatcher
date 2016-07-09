@@ -7,7 +7,7 @@ using System.IO;
 
 namespace APBWatcher
 {
-    class APBBinaryReader : BinaryReader
+    public class APBBinaryReader : BinaryReader
     {
         public APBBinaryReader(Stream input) : base(input) { }
 

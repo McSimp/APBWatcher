@@ -7,7 +7,7 @@ using System.IO;
 
 namespace APBWatcher.Networking
 {
-    class ClientPacket
+    public class ClientPacket
     {
         private byte[] _data;
 

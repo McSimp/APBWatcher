@@ -5,15 +5,18 @@ using System.Text;
 using System.Threading.Tasks;
 using APBWatcher.Networking;
 
-namespace APBWatcher.Lobby.ClientPackets
+namespace APBWatcher.Lobby
 {
-    internal class GC2LS_ASK_WORLD_ENTER : ClientPacket
+    public partial class LobbyClient
     {
-        public GC2LS_ASK_WORLD_ENTER(int characterSlot)
+        private class GC2LS_ASK_WORLD_ENTER : ClientPacket
         {
-            OpCode = 1012;
-            AllocateData(9);
-            Writer.Write((byte)characterSlot);
+            public GC2LS_ASK_WORLD_ENTER(int characterSlot)
+            {
+                OpCode = (uint)LobbyOpCode.GC2LS_ASK_WORLD_ENTER;
+                AllocateData(9);
+                Writer.Write((byte) characterSlot);
+            }
         }
     }
 }
