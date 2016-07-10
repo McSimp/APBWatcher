@@ -23,6 +23,7 @@ using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using System.Xml;
 using APBWatcher.Crypto;
+using APBWatcher.IO;
 using APBWatcher.Lobby;
 
 namespace APBWatcher
@@ -201,6 +202,25 @@ namespace APBWatcher
             file.Close();
 
             var hw = new HardwareStore("hw.yml");
+
+            Task.Run(async () =>
+            {
+                try
+                {
+                    APBClient client = new APBClient(username, password, "hw.yml");
+                    await client.Login();
+                    Console.WriteLine("Logged In!");
+                    List<WorldInfo> worlds = await client.GetWorlds();
+                    Console.WriteLine("Received worlds!");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Failed to do stuff");
+                    Console.WriteLine(e);
+                }
+            }).Wait();
+
+            return;
 
             ///*
             var lc = new LobbyClient(username, password, hw);

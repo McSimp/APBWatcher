@@ -12,7 +12,7 @@ using Org.Mentalis.Network.ProxySocket;
 
 namespace APBWatcher.Networking
 {
-    public abstract class APBClient
+    public abstract class BaseClient
     {
         private const int RecvBufferSize = 65535;
         private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
@@ -21,13 +21,13 @@ namespace APBWatcher.Networking
         private byte[] _recvBuffer = new byte[RecvBufferSize];
         private int _receivedLength;
         private NetworkRc4 _encryption = new NetworkRc4();
-        private Dictionary<uint, Tuple<string, Action<APBClient, ServerPacket>>> _packetHandlers = new Dictionary<uint, Tuple<string, Action<APBClient, ServerPacket>>>();
+        private Dictionary<uint, Tuple<string, Action<BaseClient, ServerPacket>>> _packetHandlers = new Dictionary<uint, Tuple<string, Action<BaseClient, ServerPacket>>>();
 
         public event EventHandler OnConnectSuccess = delegate { };
         public event EventHandler<Exception> OnConnectFailed = delegate { };
         public event EventHandler OnDisconnect = delegate { };
 
-        public APBClient()
+        public BaseClient()
         {
             SetupHandlers();
         }
@@ -77,6 +77,7 @@ namespace APBWatcher.Networking
             {
                 Log.Error("Failed to connect", e);
                 OnConnectFailed(this, e);
+                Disconnect();
             }
         }
 
@@ -210,7 +211,7 @@ namespace APBWatcher.Networking
                 uint opCode = (uint)attribute.OpCode;
 
                 var handlerInstance = Activator.CreateInstance(type);
-                var handlerDel = (Action<APBClient, ServerPacket>)Delegate.CreateDelegate(typeof(Action<APBClient, ServerPacket>), handlerInstance, "HandlePacket");
+                var handlerDel = (Action<BaseClient, ServerPacket>)Delegate.CreateDelegate(typeof(Action<BaseClient, ServerPacket>), handlerInstance, "HandlePacket");
 
                 _packetHandlers.Add(opCode, Tuple.Create(type.Name, handlerDel));
 

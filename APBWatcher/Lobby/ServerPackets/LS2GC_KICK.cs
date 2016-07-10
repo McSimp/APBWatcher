@@ -26,6 +26,7 @@ namespace APBWatcher.Lobby
                 Log.Debug($"m_szInformation = {data.Information}");
 
                 client.OnKick(client, data);
+                client.Disconnect();
             }
         }
     }

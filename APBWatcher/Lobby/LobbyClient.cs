@@ -7,7 +7,7 @@ using APBWatcher.Networking;
 
 namespace APBWatcher.Lobby
 {
-    public partial class LobbyClient : APBClient
+    public partial class LobbyClient : BaseClient
     {
         private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 

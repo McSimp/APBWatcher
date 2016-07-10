@@ -2,6 +2,6 @@
 {
     internal interface IPacketHandler
     {
-        void HandlePacket(APBClient client, ServerPacket packet);
+        void HandlePacket(BaseClient client, ServerPacket packet);
     }
 }

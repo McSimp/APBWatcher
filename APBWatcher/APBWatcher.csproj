@@ -53,8 +53,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="APBBinaryReader.cs" />
-    <Compile Include="APBBinaryWriter.cs" />
+    <Compile Include="APBClient.cs" />
+    <Compile Include="IO\APBBinaryReader.cs" />
+    <Compile Include="IO\APBBinaryWriter.cs" />
     <Compile Include="Lobby\LobbyOpCode.cs" />
     <Compile Include="Lobby\ServerPackets\LS2GC_ANS_LOGIN_FAILED.cs" />
     <Compile Include="Lobby\ServerPackets\LS2GC_ANS_LOGIN_SUCCESS.cs" />
@@ -66,7 +67,7 @@
     <Compile Include="Lobby\ServerPackets\LS2GC_LOGIN_PUZZLE.cs" />
     <Compile Include="Lobby\ServerPackets\LS2GC_LOGIN_SALT.cs" />
     <Compile Include="Lobby\ServerPackets\LS2GC_WMI_REQUEST.cs" />
-    <Compile Include="Networking\APBClient.cs" />
+    <Compile Include="Networking\BaseClient.cs" />
     <Compile Include="Networking\BasePacketHandler.cs" />
     <Compile Include="Networking\ClientPacket.cs" />
     <Compile Include="CryptoTest.cs" />

@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using APBWatcher.Crypto;
+using APBWatcher.IO;
 using APBWatcher.Networking;
 
 namespace APBWatcher.Lobby
