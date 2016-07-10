@@ -13,7 +13,7 @@ namespace APBWatcher.Lobby
         {
             public GC2LS_ASK_LOGIN(uint puzzleSolution, string email, byte loginType)
             {
-                OpCode = (uint)LobbyOpCode.GC2LS_ASK_LOGIN;
+                OpCode = (uint)APBOpCode.GC2LS_ASK_LOGIN;
 
                 AllocateData(229);
                 Writer.Write(puzzleSolution);

@@ -13,7 +13,7 @@ namespace APBWatcher.Lobby
         {
             public GC2LS_KEY_EXCHANGE(byte[] encryptedKey)
             {
-                OpCode = (uint)LobbyOpCode.GC2LS_KEY_EXCHANGE;
+                OpCode = (uint)APBOpCode.GC2LS_KEY_EXCHANGE;
 
                 AllocateData(268);
                 Writer.Write(0);

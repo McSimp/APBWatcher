@@ -14,7 +14,7 @@ namespace APBWatcher.Lobby
 {
     public partial class LobbyClient
     {
-        [PacketHandler(LobbyOpCode.LS2GC_WMI_REQUEST)]
+        [PacketHandler(APBOpCode.LS2GC_WMI_REQUEST)]
         private class LS2GC_WMI_REQUEST : BasePacketHandler<LobbyClient>
         {
             public override void HandlePacket(LobbyClient client, ServerPacket packet)

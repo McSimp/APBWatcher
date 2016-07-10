@@ -14,7 +14,7 @@ namespace APBWatcher.Lobby
 {
     public partial class LobbyClient
     {
-        [PacketHandler(LobbyOpCode.LS2GC_LOGIN_SALT)]
+        [PacketHandler(APBOpCode.LS2GC_LOGIN_SALT)]
         private class LS2GC_LOGIN_SALT : BasePacketHandler<LobbyClient>
         {
             private const string Modulus = "11144252439149533417835749556168991736939157778924947037200268358613863350040339017097790259154750906072491181606044774215413467851989724116331597513345603";
@@ -38,6 +38,7 @@ namespace APBWatcher.Lobby
                 byte[] salt = reader.ReadBytes(10);
 
                 Log.Info($"Account ID = 0x{accountId:X}");
+                client._accountId = accountId;
 
                 // Transform values into types the SRP client expects
                 BigInteger serverBInt = new BigInteger(1, serverB, 0, serverBLen);

@@ -210,8 +210,13 @@ namespace APBWatcher
                     APBClient client = new APBClient(username, password, "hw.yml");
                     await client.Login();
                     Console.WriteLine("Logged In!");
+                    List<CharacterInfo> characters = client.GetCharacters();
+                    Console.WriteLine("Got characters!");
                     List<WorldInfo> worlds = await client.GetWorlds();
                     Console.WriteLine("Received worlds!");
+                    await client.EnterWorld(characters[0].SlotNumber);
+                    Console.WriteLine("Connected to world!");
+
                 }
                 catch (Exception e)
                 {
@@ -249,7 +254,7 @@ namespace APBWatcher
             Console.ReadLine();
         }
 
-        static void lc_OnWorldEnterSuccess(object sender, EventArgs e)
+        static void lc_OnWorldEnterSuccess(object sender, WorldEnterData e)
         {
             Console.WriteLine("World enter success!");
         }
@@ -258,7 +263,7 @@ namespace APBWatcher
         {
             Console.WriteLine("Worlds received!");
             var lc = (LobbyClient)sender;
-            lc.WorldEnter(0);
+            lc.EnterWorld(0);
         }
 
         static void lc_OnCharacterList(object sender, List<CharacterInfo> e)

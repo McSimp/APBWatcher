@@ -81,7 +81,7 @@ namespace APBWatcher.Networking
             }
         }
 
-        protected void PostConnect() { }
+        protected virtual void PostConnect() { }
 
         private void BeginReceive()
         {
@@ -124,8 +124,14 @@ namespace APBWatcher.Networking
                 Log.Debug($"Received packet, length={length}");
                 _receivedLength += length;
 
-                TryParsePacket();
-
+                while (_receivedLength >= 4)
+                {
+                    if (!TryParsePacket())
+                    {
+                        break;
+                    }
+                }
+                
                 if (_socket != null)
                 {
                     BeginReceive();
@@ -138,13 +144,13 @@ namespace APBWatcher.Networking
             }
         }
 
-        private void TryParsePacket()
+        private bool TryParsePacket()
         {
             int size = BitConverter.ToInt32(_recvBuffer, 0);
             if (size > _receivedLength)
             {
                 Log.Debug($"Not enough data to construct packet (Have {_receivedLength}, need {size})");
-                return;
+                return false;
             }
 
             // Construct new packet
@@ -160,6 +166,8 @@ namespace APBWatcher.Networking
             _receivedLength -= size;
 
             HandlePacket(packet);
+
+            return true;
         }
 
         protected void HandlePacket(ServerPacket packet)

@@ -13,7 +13,7 @@ namespace APBWatcher.Lobby
         {
             public GC2LS_LOGIN_PROOF(byte[] clientPub, byte[] proof)
             {
-                OpCode = (uint)LobbyOpCode.GC2LS_LOGIN_PROOF;
+                OpCode = (uint)APBOpCode.GC2LS_LOGIN_PROOF;
 
                 AllocateData(94);
                 Writer.Write(clientPub);

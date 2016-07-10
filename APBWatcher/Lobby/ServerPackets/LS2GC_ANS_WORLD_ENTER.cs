@@ -11,7 +11,7 @@ namespace APBWatcher.Lobby
 {
     public partial class LobbyClient
     {
-        [PacketHandler(LobbyOpCode.LS2GC_ANS_WORLD_ENTER)]
+        [PacketHandler(APBOpCode.LS2GC_ANS_WORLD_ENTER)]
         private class LS2GC_ANS_WORLD_ENTER : BasePacketHandler<LobbyClient>
         {
             public override void HandlePacket(LobbyClient client, ServerPacket packet)
@@ -26,18 +26,22 @@ namespace APBWatcher.Lobby
                     return;
                 }
 
-                var worldServerIp = new IPAddress(reader.ReadBytes(4));
-                ushort worldServerPort = reader.ReadUInt16();
-                ulong timestamp = reader.ReadUInt64();
-                var pingServerIp = new IPAddress(reader.ReadBytes(4));
+                var data = new WorldEnterData()
+                {
+                    ReturnCode = returnCode,
+                    WorldServerIpAddress = new IPAddress(reader.ReadBytes(4)),
+                    WorldServerPort = reader.ReadUInt16(),
+                    Timestamp = reader.ReadUInt64(),
+                    PingServerIpAddress = new IPAddress(reader.ReadBytes(4))
+                };
 
                 Log.Debug($"m_nReturnCode = {returnCode}");
-                Log.Debug($"m_nWorldServerIPAddress = {worldServerIp}");
-                Log.Debug($"m_nWorldServerPingIPAddress = {pingServerIp}");
-                Log.Debug($"m_nWorldServerPort = {worldServerPort}");
-                Log.Debug($"m_nTimestamp = {timestamp}");
+                Log.Debug($"m_nWorldServerIPAddress = {data.WorldServerIpAddress}");
+                Log.Debug($"m_nWorldServerPingIPAddress = {data.PingServerIpAddress}");
+                Log.Debug($"m_nWorldServerPort = {data.WorldServerPort}");
+                Log.Debug($"m_nTimestamp = {data.Timestamp}");
 
-                client.OnWorldEnterSuccess(client, null);
+                client.OnWorldEnterSuccess(client, data);
             }
         }
     }

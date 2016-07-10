@@ -17,7 +17,7 @@ namespace APBWatcher.Lobby
 {
     public partial class LobbyClient
     {
-        [PacketHandler(LobbyOpCode.LS2GC_ANS_LOGIN_SUCCESS)]
+        [PacketHandler(APBOpCode.LS2GC_ANS_LOGIN_SUCCESS)]
         private class LS2GC_ANS_LOGIN_SUCCESS : BasePacketHandler<LobbyClient>
         {
             public override void HandlePacket(LobbyClient client, ServerPacket packet)

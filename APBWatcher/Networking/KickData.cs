@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace APBWatcher.Lobby
+namespace APBWatcher.Networking
 {
     public class KickData
     {

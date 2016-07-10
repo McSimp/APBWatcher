@@ -17,6 +17,7 @@ namespace APBWatcher.Lobby
         private HardwareStore _hardwareStore;
         private string _username;
         private string _password;
+        private uint _accountId;
 
         public event EventHandler<ErrorData> OnError = delegate { };
         public event EventHandler<int> OnPuzzleFailed = delegate { };
@@ -27,7 +28,7 @@ namespace APBWatcher.Lobby
         public event EventHandler<int> OnGetWorldListFailed = delegate { };
         public event EventHandler<List<WorldInfo>> OnGetWorldListSuccess = delegate { };
         public event EventHandler<int> OnWorldEnterFailed = delegate { };
-        public event EventHandler OnWorldEnterSuccess = delegate { };
+        public event EventHandler<WorldEnterData> OnWorldEnterSuccess = delegate { };
 
         public LobbyClient(string username, string password, HardwareStore hw)
         {
@@ -36,7 +37,7 @@ namespace APBWatcher.Lobby
             _hardwareStore = hw;
         }
 
-        public void WorldEnter(int characterSlotNumber)
+        public void EnterWorld(int characterSlotNumber)
         {
             var request = new GC2LS_ASK_WORLD_ENTER(characterSlotNumber);
             SendPacket(request);
@@ -46,6 +47,16 @@ namespace APBWatcher.Lobby
         {
             var worldListReq = new GC2LS_ASK_WORLD_LIST();
             SendPacket(worldListReq);
+        }
+
+        public uint GetAccountId()
+        {
+            return _accountId;
+        }
+
+        public byte[] GetEncryptionKey()
+        {
+            return _srpKey;
         }
     }
 }

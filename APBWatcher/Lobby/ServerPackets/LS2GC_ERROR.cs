@@ -10,7 +10,7 @@ namespace APBWatcher.Lobby
 {
     public partial class LobbyClient
     {
-        [PacketHandler(LobbyOpCode.LS2GC_ERROR)]
+        [PacketHandler(APBOpCode.LS2GC_ERROR)]
         private class LS2GC_ERROR : BasePacketHandler<LobbyClient>
         {
             public override void HandlePacket(LobbyClient client, ServerPacket packet)

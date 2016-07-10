@@ -6,6 +6,7 @@ using System.Runtime.Remoting.Messaging;
 using System.Text;
 using System.Threading.Tasks;
 using APBWatcher.Lobby;
+using APBWatcher.World;
 using log4net.Util;
 
 namespace APBWatcher
@@ -30,7 +31,11 @@ namespace APBWatcher
             LobbyServerConnectComplete,
             LobbyServerLoginInProgress, // IGNORED
             LobbyServerLoginComplete,
-            LobbyServerCharacterListReceived
+            LobbyServerCharacterListReceived,
+            LobbyServerWorldEnterInProgress,
+            LobbyServerWorldEnterComplete,
+            WorldServerConnectInProgress,
+            WorldServerConnectComplete
         }
 
         private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
@@ -39,10 +44,12 @@ namespace APBWatcher
         private const int LobbyPort = 1001;
 
         private LobbyClient _lobbyClient;
+        private WorldClient _worldClient;
         private ClientState _state;
         private bool _busy;
         private TaskCompletionSource<object> _activeLoginTask;
         private TaskCompletionSource<List<WorldInfo>> _activeWorldTask;
+        private TaskCompletionSource<object> _activeWorldEnterTask;
         private List<CharacterInfo> _characters;
 
         public APBClient(string username, string password, string hwFile)
@@ -53,6 +60,14 @@ namespace APBWatcher
             _lobbyClient.OnLoginSuccess += GenerateEventHandler(HandleLoginSuccess);
             _lobbyClient.OnCharacterList += GenerateEventHandler<List<CharacterInfo>>(HandleCharacterList);
             _lobbyClient.OnGetWorldListSuccess += GenerateEventHandler<List<WorldInfo>>(HandleWorldListSuccess);
+            _lobbyClient.OnWorldEnterSuccess += GenerateEventHandler<WorldEnterData>(HandleLobbyWorldEnterSuccess);
+        }
+
+        private void SetupWorldClient(byte[] encryptionKey, uint accountId, ulong timestamp)
+        {
+            _worldClient = new WorldClient(encryptionKey, accountId, timestamp);
+            _worldClient.OnConnectSuccess += GenerateEventHandler(HandleWorldConnectSuccess);
+            _worldClient.OnDisconnect += GenerateEventHandler(HandleWorldDisconnect);
         }
 
         private EventHandler GenerateEventHandler(EventHandler handler)
@@ -101,8 +116,7 @@ namespace APBWatcher
             {
                 Log.Warn(errMessage);
                 _busy = false;
-                SetTaskException(_activeLoginTask, errMessage);
-                SetTaskException(_activeWorldTask, errMessage);
+                SetAllTaskExceptions(errMessage);
                 Disconnect();
                 return false;
             }
@@ -119,13 +133,23 @@ namespace APBWatcher
             }
         }
 
+        private void SetAllTaskExceptions(string message)
+        {
+            SetTaskException(_activeLoginTask, message);
+            SetTaskException(_activeWorldTask, message);
+            SetTaskException(_activeWorldEnterTask, message);
+        }
+
         private void HandleLobbyDisconnect(object sender, EventArgs e)
         {
-            // CHECK IF WORLD STUFF HAPPENING BECAUSE LOBBY WILL DISCONNECT
+            if (_state >= ClientState.LobbyServerWorldEnterComplete)
+            {
+                return; // We expect lobby to disconnect here
+            }
+
             _state = ClientState.Disconnected;
             _busy = false;
-            SetTaskException(_activeLoginTask, "Connection closed while processing");
-            SetTaskException(_activeWorldTask, "Connection closed while processing");
+            SetAllTaskExceptions("Connection closed while processing");
         }
 
         private void Disconnect()
@@ -162,11 +186,20 @@ namespace APBWatcher
             _activeWorldTask?.SetResult(e);
         }
 
+        [RequiredState(ClientState.LobbyServerWorldEnterInProgress)]
+        private void HandleLobbyWorldEnterSuccess(object sender, WorldEnterData e)
+        {
+            _state = ClientState.LobbyServerWorldEnterComplete;
+            SetupWorldClient(_lobbyClient.GetEncryptionKey(), _lobbyClient.GetAccountId(), e.Timestamp);
+            _state = ClientState.WorldServerConnectInProgress;
+            _worldClient.ConnectProxy(e.WorldServerIpAddress.ToString(), e.WorldServerPort, "127.0.0.1", 9150, null, null);
+        }
+
         public Task Login()
         {
             if (_state != ClientState.Disconnected || _busy)
             {
-                throw new InvalidOperationException("Client not in disconnected state or busy");    
+                throw new InvalidOperationException("Client not in disconnected state or busy");
             }
 
             _activeLoginTask = new TaskCompletionSource<object>();
@@ -199,6 +232,33 @@ namespace APBWatcher
             _busy = true;
             _lobbyClient.GetWorldList();
             return _activeWorldTask.Task;
+        }
+
+        public Task EnterWorld(int characterSlotNumber)
+        {
+            if (_state != ClientState.LobbyServerCharacterListReceived || _busy)
+            {
+                throw new InvalidOperationException("Client has not received characters or busy");
+            }
+
+            _activeWorldEnterTask = new TaskCompletionSource<object>();
+            _busy = true;
+            _state = ClientState.LobbyServerWorldEnterInProgress;
+            _lobbyClient.EnterWorld(characterSlotNumber);
+            return _activeWorldEnterTask.Task;
+        }
+
+        private void HandleWorldDisconnect(object sender, EventArgs e)
+        {
+            _state = ClientState.Disconnected;
+            _busy = false;
+            SetAllTaskExceptions("Connection closed while processing");
+        }
+
+        [RequiredState(ClientState.WorldServerConnectInProgress)]
+        private void HandleWorldConnectSuccess(object sender, EventArgs e)
+        {
+            _state = ClientState.WorldServerConnectComplete;
         }
     }
 }

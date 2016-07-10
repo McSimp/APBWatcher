@@ -13,7 +13,7 @@ namespace APBWatcher.Lobby
         {
             public GC2LS_HARDWARE_INFO(byte[] windowsInfo, int a2, int a3, int bfpVersion, byte[] bfpHash, byte[] hashSection, byte[] bfpData, byte[] hwData)
             {
-                OpCode = (uint) LobbyOpCode.GC2LS_HARDWARE_INFO;
+                OpCode = (uint)APBOpCode.GC2LS_HARDWARE_INFO;
 
                 AllocateData(8 + windowsInfo.Length + 4 + 4 + 4 + bfpHash.Length + hashSection.Length + 4 + 4 + bfpData.Length + hwData.Length);
                 Writer.Write(windowsInfo);

@@ -13,7 +13,7 @@ namespace APBWatcher.Lobby
         {
             public GC2LS_ASK_WORLD_ENTER(int characterSlot)
             {
-                OpCode = (uint)LobbyOpCode.GC2LS_ASK_WORLD_ENTER;
+                OpCode = (uint)APBOpCode.GC2LS_ASK_WORLD_ENTER;
                 AllocateData(9);
                 Writer.Write((byte) characterSlot);
             }

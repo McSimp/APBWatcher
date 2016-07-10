@@ -6,7 +6,7 @@ namespace APBWatcher.Lobby
 {
     public partial class LobbyClient
     {
-        [PacketHandler(LobbyOpCode.LS2GC_LOGIN_PUZZLE)]
+        [PacketHandler(APBOpCode.LS2GC_LOGIN_PUZZLE)]
         private class LS2GC_LOGIN_PUZZLE : BasePacketHandler<LobbyClient>
         {
             private void SolveLoginPuzzle(uint[] v, uint[] k, byte unknown)
@@ -67,7 +67,7 @@ namespace APBWatcher.Lobby
                     {
                         SolveLoginPuzzle(uintEncryptionKey, puzzleData, unknown);
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         Log.Error($"Failed to solve login puzzle: v[0]=0x{uintEncryptionKey[0]:X}, v[1]=0x{uintEncryptionKey[1]:X}, k[0]=0x{puzzleData[0]:X}, k[1]=0x{puzzleData[1]:X}, k[2]=0x{puzzleData[2]:X}");
 

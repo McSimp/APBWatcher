@@ -56,7 +56,6 @@
     <Compile Include="APBClient.cs" />
     <Compile Include="IO\APBBinaryReader.cs" />
     <Compile Include="IO\APBBinaryWriter.cs" />
-    <Compile Include="Lobby\LobbyOpCode.cs" />
     <Compile Include="Lobby\ServerPackets\LS2GC_ANS_LOGIN_FAILED.cs" />
     <Compile Include="Lobby\ServerPackets\LS2GC_ANS_LOGIN_SUCCESS.cs" />
     <Compile Include="Lobby\ServerPackets\LS2GC_ANS_WORLD_ENTER.cs" />
@@ -67,14 +66,14 @@
     <Compile Include="Lobby\ServerPackets\LS2GC_LOGIN_PUZZLE.cs" />
     <Compile Include="Lobby\ServerPackets\LS2GC_LOGIN_SALT.cs" />
     <Compile Include="Lobby\ServerPackets\LS2GC_WMI_REQUEST.cs" />
+    <Compile Include="Lobby\WorldEnterData.cs" />
     <Compile Include="Networking\BaseClient.cs" />
     <Compile Include="Networking\BasePacketHandler.cs" />
     <Compile Include="Networking\ClientPacket.cs" />
     <Compile Include="CryptoTest.cs" />
     <Compile Include="Crypto\NetworkRC4.cs" />
     <Compile Include="Lobby\CharacterInfo.cs" />
-    <Compile Include="Lobby\ErrorData.cs" />
-    <Compile Include="Lobby\KickData.cs" />
+    <Compile Include="Networking\KickData.cs" />
     <Compile Include="Lobby\LobbyClient.cs" />
     <Compile Include="Lobby\ClientPackets\GC2LS_ASK_LOGIN.cs" />
     <Compile Include="Lobby\ClientPackets\GC2LS_ASK_WORLD_ENTER.cs" />
@@ -85,7 +84,9 @@
     <Compile Include="Lobby\LoginFailedData.cs" />
     <Compile Include="Lobby\WorldInfo.cs" />
     <Compile Include="LoginStatuses.cs" />
+    <Compile Include="Networking\ErrorData.cs" />
     <Compile Include="Networking\IPacketHandler.cs" />
+    <Compile Include="Networking\APBOpCode.cs" />
     <Compile Include="Networking\PacketHandlerAttribute.cs" />
     <Compile Include="Networking\ServerPacket.cs" />
     <Compile Include="Program.cs" />
@@ -100,6 +101,12 @@
     <Compile Include="ProxySocket\Socks5Handler.cs" />
     <Compile Include="ProxySocket\SocksHandler.cs" />
     <Compile Include="Util.cs" />
+    <Compile Include="World\ClientPackets\GC2WS_ASK_INSTANCE_LIST.cs" />
+    <Compile Include="World\ClientPackets\GC2WS_ASK_WORLD_ENTER.cs" />
+    <Compile Include="World\ServerPackets\WS2GC_ANS_INSTANCE_LIST.cs" />
+    <Compile Include="World\ServerPackets\WS2GC_ANS_WORLD_ENTER.cs" />
+    <Compile Include="World\ServerPackets\WS2GC_DISTRICT_LIST.cs" />
+    <Compile Include="World\WorldClient.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
@@ -111,6 +118,7 @@
     <Compile Include="HardwareStore.cs" />
     <Compile Include="Crypto\XXTEA.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
