@@ -19,6 +19,7 @@ namespace APBWatcher.Networking
 
         private ProxySocket _socket;
         private byte[] _recvBuffer = new byte[RecvBufferSize];
+        private int _nextPacketLength;
         private int _receivedLength;
         private NetworkRc4 _encryption = new NetworkRc4();
         private Dictionary<uint, Tuple<string, Action<BaseClient, ServerPacket>>> _packetHandlers = new Dictionary<uint, Tuple<string, Action<BaseClient, ServerPacket>>>();
@@ -71,7 +72,7 @@ namespace APBWatcher.Networking
                 PostConnect();
 
                 // Start receiving
-                BeginReceive();
+                BeginReceiveLength();
             }
             catch (Exception e)
             {
@@ -82,11 +83,6 @@ namespace APBWatcher.Networking
         }
 
         protected virtual void PostConnect() { }
-
-        private void BeginReceive()
-        {
-            _socket.BeginReceive(_recvBuffer, _receivedLength, _recvBuffer.Length - _receivedLength, SocketFlags.None, ReceiveCallback, null);
-        }
 
         public void Disconnect()
         {
@@ -109,7 +105,17 @@ namespace APBWatcher.Networking
             OnDisconnect(this, null);
         }
 
-        private void ReceiveCallback(IAsyncResult ar)
+        private void BeginReceiveLength()
+        {
+            _socket.BeginReceive(_recvBuffer, _receivedLength, 4 - _receivedLength, SocketFlags.None, ReceiveLengthCallback, null);
+        }
+
+        private void BeginReceiveData()
+        {
+            _socket.BeginReceive(_recvBuffer, _receivedLength, _nextPacketLength - _receivedLength, SocketFlags.None, ReceiveDataCallback, null);
+        }
+
+        private void ReceiveLengthCallback(IAsyncResult ar)
         {
             try
             {
@@ -121,20 +127,51 @@ namespace APBWatcher.Networking
                     return;
                 }
 
-                Log.Debug($"Received packet, length={length}");
                 _receivedLength += length;
 
-                while (_receivedLength >= 4)
+                if (_receivedLength == 4)
                 {
-                    if (!TryParsePacket())
-                    {
-                        break;
-                    }
+                    _nextPacketLength = BitConverter.ToInt32(_recvBuffer, 0) - 4;
+                    Log.Debug($"Received length {_nextPacketLength}");
+                    _receivedLength = 0;
+                    BeginReceiveData();
+                    // TODO: Ensure not bigger than recv buffer
                 }
-                
-                if (_socket != null)
+                else
                 {
-                    BeginReceive();
+                    BeginReceiveLength();
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Warn("Exception occurred while receiving, disconnecting", e);
+                Disconnect();
+            }
+        }
+
+        private void ReceiveDataCallback(IAsyncResult ar)
+        {
+            try
+            {
+                int length = _socket.EndReceive(ar);
+                if (length <= 0)
+                {
+                    Log.Warn($"Received invalid packet length {length}, disconnecting");
+                    Disconnect();
+                    return;
+                }
+
+                Log.Debug($"Received data packet, length={length}");
+                _receivedLength += length;
+
+                if (_receivedLength == _nextPacketLength)
+                {
+                    TryParsePacket();
+                    BeginReceiveLength();
+                }
+                else
+                {
+                    BeginReceiveData();
                 }
             }
             catch (Exception e)
@@ -146,25 +183,14 @@ namespace APBWatcher.Networking
 
         private bool TryParsePacket()
         {
-            int size = BitConverter.ToInt32(_recvBuffer, 0);
-            if (size > _receivedLength)
-            {
-                Log.Debug($"Not enough data to construct packet (Have {_receivedLength}, need {size})");
-                return false;
-            }
-
-            // Construct new packet
-            Log.Debug($"Size field = {size}");
-
             // Decrypt packet if need be
             if (_encryption.Initialized)
             {
-                _encryption.DecryptServerData(_recvBuffer, 4, size - 4);
+                _encryption.DecryptServerData(_recvBuffer, 0, _receivedLength);
             }
 
-            var packet = new ServerPacket(_recvBuffer, 4, size - 4);
-            _receivedLength -= size;
-
+            var packet = new ServerPacket(_recvBuffer, 0, _receivedLength);
+            _receivedLength = 0;
             HandlePacket(packet);
 
             return true;
