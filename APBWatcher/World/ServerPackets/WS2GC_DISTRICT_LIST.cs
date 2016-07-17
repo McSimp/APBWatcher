@@ -21,13 +21,12 @@ namespace APBWatcher.World
                 if (returnCode != 0)
                 {
                     Log.Error($"WS2GC_DISTRICT_LIST response had invalid return code {returnCode}");
-                    // TODO: Error here
+                    client.OnWorldEnterFailed(client, returnCode);
                     return;
                 }
 
                 short numDistricts = reader.ReadInt16();
                 Log.Debug($"m_nDistricts = {numDistricts}");
-                client.GetInstanceList();
             }
         }
     }

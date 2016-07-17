@@ -35,7 +35,9 @@ namespace APBWatcher
             LobbyServerWorldEnterInProgress,
             LobbyServerWorldEnterComplete,
             WorldServerConnectInProgress,
-            WorldServerConnectComplete
+            WorldServerConnectComplete,
+            WorldServerWorldEnterInProgress,
+            WorldServerWorldEnterComplete,
         }
 
         private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
@@ -49,7 +51,8 @@ namespace APBWatcher
         private bool _busy;
         private TaskCompletionSource<object> _activeLoginTask;
         private TaskCompletionSource<List<WorldInfo>> _activeWorldTask;
-        private TaskCompletionSource<object> _activeWorldEnterTask;
+        private TaskCompletionSource<FinalWorldEnterData> _activeWorldEnterTask;
+        private TaskCompletionSource<List<InstanceInfo>> _activeInstanceTask;
         private List<CharacterInfo> _characters;
 
         public APBClient(string username, string password, string hwFile)
@@ -68,6 +71,8 @@ namespace APBWatcher
             _worldClient = new WorldClient(encryptionKey, accountId, timestamp);
             _worldClient.OnConnectSuccess += GenerateEventHandler(HandleWorldConnectSuccess);
             _worldClient.OnDisconnect += GenerateEventHandler(HandleWorldDisconnect);
+            _worldClient.OnWorldEnterSuccess += GenerateEventHandler<FinalWorldEnterData>(HandleWorldEnterSuccess);
+            _worldClient.OnInstanceListSuccess += GenerateEventHandler<List<InstanceInfo>>(HandleInstanceListSuccess);
         }
 
         private EventHandler GenerateEventHandler(EventHandler handler)
@@ -234,14 +239,14 @@ namespace APBWatcher
             return _activeWorldTask.Task;
         }
 
-        public Task EnterWorld(int characterSlotNumber)
+        public Task<FinalWorldEnterData> EnterWorld(int characterSlotNumber)
         {
             if (_state != ClientState.LobbyServerCharacterListReceived || _busy)
             {
                 throw new InvalidOperationException("Client has not received characters or busy");
             }
 
-            _activeWorldEnterTask = new TaskCompletionSource<object>();
+            _activeWorldEnterTask = new TaskCompletionSource<FinalWorldEnterData>();
             _busy = true;
             _state = ClientState.LobbyServerWorldEnterInProgress;
             _lobbyClient.EnterWorld(characterSlotNumber);
@@ -259,6 +264,34 @@ namespace APBWatcher
         private void HandleWorldConnectSuccess(object sender, EventArgs e)
         {
             _state = ClientState.WorldServerConnectComplete;
+        }
+
+        [RequiredState(ClientState.WorldServerConnectComplete)]
+        private void HandleWorldEnterSuccess(object sender, FinalWorldEnterData e)
+        {
+            _state = ClientState.WorldServerWorldEnterComplete;
+            _busy = false;
+            _activeWorldEnterTask?.SetResult(e);
+        }
+
+        [RequiredState(ClientState.WorldServerWorldEnterComplete)]
+        private void HandleInstanceListSuccess(object sender, List<InstanceInfo> e)
+        {
+            _busy = false;
+            _activeInstanceTask?.SetResult(e);
+        }
+
+        public Task<List<InstanceInfo>> GetInstances()
+        {
+            if (_state != ClientState.WorldServerWorldEnterComplete || _busy)
+            {
+                throw new InvalidOperationException("Client has not entered world or busy");
+            }
+
+            _activeInstanceTask = new TaskCompletionSource<List<InstanceInfo>>();
+            _busy = true;
+            _worldClient.GetInstanceList();
+            return _activeInstanceTask.Task;
         }
     }
 }

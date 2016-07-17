@@ -103,6 +103,8 @@
     <Compile Include="Util.cs" />
     <Compile Include="World\ClientPackets\GC2WS_ASK_INSTANCE_LIST.cs" />
     <Compile Include="World\ClientPackets\GC2WS_ASK_WORLD_ENTER.cs" />
+    <Compile Include="World\FinalWorldEnterData.cs" />
+    <Compile Include="World\InstanceInfo.cs" />
     <Compile Include="World\ServerPackets\WS2GC_ANS_INSTANCE_LIST.cs" />
     <Compile Include="World\ServerPackets\WS2GC_ANS_WORLD_ENTER.cs" />
     <Compile Include="World\ServerPackets\WS2GC_DISTRICT_LIST.cs" />

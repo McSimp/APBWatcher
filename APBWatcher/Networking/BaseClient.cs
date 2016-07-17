@@ -217,6 +217,8 @@ namespace APBWatcher.Networking
 
         protected void SendPacket(ClientPacket packet)
         {
+            Log.Info($"Sending [{packet.GetType().Name}]");
+
             byte[] data = packet.GetDataForSending();
 
             //Log.Debug("Raw packet data:" + Environment.NewLine + HexDump(data));

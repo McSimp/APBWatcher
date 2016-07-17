@@ -25,6 +25,7 @@ using System.Xml;
 using APBWatcher.Crypto;
 using APBWatcher.IO;
 using APBWatcher.Lobby;
+using APBWatcher.World;
 
 namespace APBWatcher
 {
@@ -214,9 +215,10 @@ namespace APBWatcher
                     Console.WriteLine("Got characters!");
                     List<WorldInfo> worlds = await client.GetWorlds();
                     Console.WriteLine("Received worlds!");
-                    await client.EnterWorld(characters[0].SlotNumber);
+                    FinalWorldEnterData worldEnterData = await client.EnterWorld(characters[0].SlotNumber);
                     Console.WriteLine("Connected to world!");
-
+                    List<InstanceInfo> instances = await client.GetInstances();
+                    Console.WriteLine("Recieved instances");
                 }
                 catch (Exception e)
                 {

@@ -17,7 +17,36 @@ namespace APBWatcher.World
             {
                 var reader = packet.Reader;
 
-                Console.WriteLine(Util.HexDump(packet.Data));
+                int returnCode = reader.ReadInt32();
+                if (returnCode != 0)
+                {
+                    Log.Error($"WS2GC_ANS_INSTANCE_LIST response had invalid return code {returnCode}");
+                    client.OnInstanceListFailed(client, returnCode);
+                    return;
+                }
+
+                short numInstances = reader.ReadInt16();
+
+                var instances = new List<InstanceInfo>(numInstances);
+                for (int i = 0; i < numInstances; i++)
+                {
+                    int temp = reader.ReadInt32();
+
+                    var instance = new InstanceInfo
+                    {
+                        DistrictUid = temp << 8 >> 8,
+                        InstanceNum = temp >> 24,
+                        Enforcers = reader.ReadInt16(),
+                        Criminals = reader.ReadInt16(),
+                        DistrictStatus = reader.ReadByte(),
+                        QueueSize = reader.ReadInt16(),
+                        Threat = reader.ReadInt32()
+                    };
+
+                    instances.Add(instance);
+                }
+
+                client.OnInstanceListSuccess(client, instances);
             }
         }
     }

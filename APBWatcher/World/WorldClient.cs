@@ -15,6 +15,10 @@ namespace APBWatcher.World
 
         public event EventHandler<ErrorData> OnError = delegate { };
         public event EventHandler<KickData> OnKick = delegate { };
+        public event EventHandler<FinalWorldEnterData> OnWorldEnterSuccess = delegate { };
+        public event EventHandler<int> OnWorldEnterFailed = delegate { };
+        public event EventHandler<List<InstanceInfo>> OnInstanceListSuccess = delegate { };
+        public event EventHandler<int> OnInstanceListFailed = delegate { };
 
         private byte[] _encryptionKey;
         private uint _accountId;
