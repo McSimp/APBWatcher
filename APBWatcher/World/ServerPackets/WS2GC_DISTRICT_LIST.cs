@@ -27,6 +27,18 @@ namespace APBWatcher.World
 
                 short numDistricts = reader.ReadInt16();
                 Log.Debug($"m_nDistricts = {numDistricts}");
+
+                var districts = new List<DistrictInfo>();
+                for (int i = 0; i < numDistricts; i++)
+                {
+                    districts.Add(new DistrictInfo
+                    {
+                        DistrictUid = reader.ReadInt32(),
+                        DistrictInstanceTypeSdd = reader.ReadUInt32()
+                    });
+                }
+
+                client.OnDistrictListSuccess(client, districts);
             }
         }
     }

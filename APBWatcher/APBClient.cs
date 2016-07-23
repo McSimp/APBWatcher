@@ -36,7 +36,7 @@ namespace APBWatcher
             LobbyServerWorldEnterComplete,
             WorldServerConnectInProgress,
             WorldServerConnectComplete,
-            WorldServerWorldEnterInProgress,
+            WorldServerWorldEnterInProgress, // IGNORED
             WorldServerWorldEnterComplete,
         }
 
@@ -54,6 +54,7 @@ namespace APBWatcher
         private TaskCompletionSource<FinalWorldEnterData> _activeWorldEnterTask;
         private TaskCompletionSource<List<InstanceInfo>> _activeInstanceTask;
         private List<CharacterInfo> _characters;
+        private Dictionary<int, DistrictInfo> _districtMap;
 
         public APBClient(string username, string password, string hwFile)
         {
@@ -73,6 +74,8 @@ namespace APBWatcher
             _worldClient.OnDisconnect += GenerateEventHandler(HandleWorldDisconnect);
             _worldClient.OnWorldEnterSuccess += GenerateEventHandler<FinalWorldEnterData>(HandleWorldEnterSuccess);
             _worldClient.OnInstanceListSuccess += GenerateEventHandler<List<InstanceInfo>>(HandleInstanceListSuccess);
+            _worldClient.OnDistrictListSuccess += GenerateEventHandler<List<DistrictInfo>>(HandleDistrictListSuccess);
+            _districtMap = new Dictionary<int, DistrictInfo>();
         }
 
         private EventHandler GenerateEventHandler(EventHandler handler)
@@ -267,6 +270,15 @@ namespace APBWatcher
         }
 
         [RequiredState(ClientState.WorldServerConnectComplete)]
+        private void HandleDistrictListSuccess(object sender, List<DistrictInfo> e)
+        {
+            foreach (DistrictInfo district in e)
+            {
+                _districtMap[district.DistrictUid] = district;
+            }
+        }
+
+        [RequiredState(ClientState.WorldServerConnectComplete)]
         private void HandleWorldEnterSuccess(object sender, FinalWorldEnterData e)
         {
             _state = ClientState.WorldServerWorldEnterComplete;
@@ -279,6 +291,16 @@ namespace APBWatcher
         {
             _busy = false;
             _activeInstanceTask?.SetResult(e);
+        }
+
+        public Dictionary<int, DistrictInfo> GetDistricts()
+        {
+            if (_state != ClientState.WorldServerWorldEnterComplete)
+            {
+                throw new InvalidOperationException("Client has not entered world yet");
+            }
+
+            return _districtMap;
         }
 
         public Task<List<InstanceInfo>> GetInstances()
