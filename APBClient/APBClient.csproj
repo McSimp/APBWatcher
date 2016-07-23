@@ -114,9 +114,6 @@
     <Compile Include="World\WorldClient.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config">
-      <SubType>Designer</SubType>
-    </None>
     <None Include="packages.config" />
     <Compile Include="Crypto\WeakSrp6Client.cs" />
     <Compile Include="Crypto\WindowsRSA.cs" />

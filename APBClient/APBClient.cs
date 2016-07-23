@@ -56,9 +56,9 @@ namespace APBClient
         private List<CharacterInfo> _characters;
         private Dictionary<int, DistrictInfo> _districtMap;
 
-        public APBClient(string username, string password, string hwFile)
+        public APBClient(string username, string password, HardwareStore hw)
         {
-            _lobbyClient = new LobbyClient(username, password, new HardwareStore(hwFile));
+            _lobbyClient = new LobbyClient(username, password, hw);
             _lobbyClient.OnConnectSuccess += GenerateEventHandler(HandleLobbyConnectSuccess);
             _lobbyClient.OnDisconnect += GenerateEventHandler(HandleLobbyDisconnect);
             _lobbyClient.OnLoginSuccess += GenerateEventHandler(HandleLoginSuccess);

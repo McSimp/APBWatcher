@@ -5,6 +5,8 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APBClient", "APBClient\APBClient.csproj", "{CBEE474C-0C3F-4A90-9F2E-A2379E3A7E67}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APBWatcher", "APBWatcher\APBWatcher.csproj", "{FF0F2748-4470-4168-9FEC-1426200ADD63}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{CBEE474C-0C3F-4A90-9F2E-A2379E3A7E67}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CBEE474C-0C3F-4A90-9F2E-A2379E3A7E67}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CBEE474C-0C3F-4A90-9F2E-A2379E3A7E67}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FF0F2748-4470-4168-9FEC-1426200ADD63}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF0F2748-4470-4168-9FEC-1426200ADD63}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF0F2748-4470-4168-9FEC-1426200ADD63}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF0F2748-4470-4168-9FEC-1426200ADD63}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

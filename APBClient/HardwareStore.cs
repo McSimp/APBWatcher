@@ -50,13 +50,10 @@ namespace APBClient
 
         public int BfpVersion => _hardwareDb.BfpVersion;
 
-        public HardwareStore(string storeFile)
+        public HardwareStore(TextReader reader)
         {
-            using (TextReader reader = File.OpenText(storeFile))
-            {
-                var deserializer = new Deserializer();
-                _hardwareDb = deserializer.Deserialize<HardwareDb>(reader);
-            }
+            var deserializer = new Deserializer();
+            _hardwareDb = deserializer.Deserialize<HardwareDb>(reader);
         }
 
         private WmiSection GetSection(string sectionName)
