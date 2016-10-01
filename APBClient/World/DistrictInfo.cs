@@ -14,8 +14,10 @@ namespace APBClient.World
             { 0xD794AAC8, "Fight Club-Abington Towers-EN" },
             { 0xAA5B02AA, "Dynamic Event-Waterfront - Anarchy-EN" },
             { 0x28CA6ADE, "Missions-Waterfront-EN" },
-            { 0x1A79EB9B, "Dynamic Event-Financial - Anarchy-EN" },
+            { 0x1A79EB9B, "Social-Breakwater Marina-EN" },
             { 0x413D5EB0, "Fight Club-Baylan Shipping Storage-EN" },
+            { 0xDC402E08, "Open Conflict-Waterfront-EN" },
+            { 0xDB1AF08B, "Open Conflict-Financial-EN" },
         };
         
         public int DistrictUid;
