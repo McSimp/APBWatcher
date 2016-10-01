@@ -25,7 +25,7 @@ namespace APBClient.World
         private uint _accountId;
         private ulong _timestamp;
 
-        public WorldClient(byte[] encryptionKey, uint accountId, ulong timestamp)
+        public WorldClient(byte[] encryptionKey, uint accountId, ulong timestamp, ISocketFactory socketFactory = null) : base(socketFactory)
         {
             _encryptionKey = encryptionKey;
             _accountId = accountId;

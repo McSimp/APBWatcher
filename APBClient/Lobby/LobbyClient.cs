@@ -30,7 +30,7 @@ namespace APBClient.Lobby
         public event EventHandler<int> OnWorldEnterFailed = delegate { };
         public event EventHandler<WorldEnterData> OnWorldEnterSuccess = delegate { };
 
-        public LobbyClient(string username, string password, HardwareStore hw)
+        public LobbyClient(string username, string password, HardwareStore hw, ISocketFactory socketFactory = null) : base(socketFactory)
         {
             _username = username;
             _password = password;

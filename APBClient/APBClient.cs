@@ -6,6 +6,7 @@ using System.Runtime.Remoting.Messaging;
 using System.Text;
 using System.Threading.Tasks;
 using APBClient.Lobby;
+using APBClient.Networking;
 using APBClient.World;
 using log4net.Util;
 
@@ -45,6 +46,7 @@ namespace APBClient
         private const string LobbyHost = "apb.login.gamersfirst.com";
         private const int LobbyPort = 1001;
 
+        private ISocketFactory _socketFactory;
         private LobbyClient _lobbyClient;
         private WorldClient _worldClient;
         private ClientState _state;
@@ -56,9 +58,10 @@ namespace APBClient
         private List<CharacterInfo> _characters;
         private Dictionary<int, DistrictInfo> _districtMap;
 
-        public APBClient(string username, string password, HardwareStore hw)
+        public APBClient(string username, string password, HardwareStore hw, ISocketFactory socketFactory = null)
         {
-            _lobbyClient = new LobbyClient(username, password, hw);
+            _socketFactory = socketFactory;
+            _lobbyClient = new LobbyClient(username, password, hw, _socketFactory);
             _lobbyClient.OnConnectSuccess += GenerateEventHandler(HandleLobbyConnectSuccess);
             _lobbyClient.OnDisconnect += GenerateEventHandler(HandleLobbyDisconnect);
             _lobbyClient.OnLoginSuccess += GenerateEventHandler(HandleLoginSuccess);
@@ -69,7 +72,7 @@ namespace APBClient
 
         private void SetupWorldClient(byte[] encryptionKey, uint accountId, ulong timestamp)
         {
-            _worldClient = new WorldClient(encryptionKey, accountId, timestamp);
+            _worldClient = new WorldClient(encryptionKey, accountId, timestamp, _socketFactory);
             _worldClient.OnConnectSuccess += GenerateEventHandler(HandleWorldConnectSuccess);
             _worldClient.OnDisconnect += GenerateEventHandler(HandleWorldDisconnect);
             _worldClient.OnWorldEnterSuccess += GenerateEventHandler<FinalWorldEnterData>(HandleWorldEnterSuccess);
@@ -146,6 +149,7 @@ namespace APBClient
             SetTaskException(_activeLoginTask, message);
             SetTaskException(_activeWorldTask, message);
             SetTaskException(_activeWorldEnterTask, message);
+            SetTaskException(_activeInstanceTask, message);
         }
 
         private void HandleLobbyDisconnect(object sender, EventArgs e)
@@ -200,7 +204,7 @@ namespace APBClient
             _state = ClientState.LobbyServerWorldEnterComplete;
             SetupWorldClient(_lobbyClient.GetEncryptionKey(), _lobbyClient.GetAccountId(), e.Timestamp);
             _state = ClientState.WorldServerConnectInProgress;
-            _worldClient.ConnectProxy(e.WorldServerIpAddress.ToString(), e.WorldServerPort, "127.0.0.1", 9150, null, null);
+           _worldClient.Connect(e.WorldServerIpAddress.ToString(), e.WorldServerPort);
         }
 
         public Task Login()
@@ -214,7 +218,7 @@ namespace APBClient
             _busy = true;
 
             _state = ClientState.LobbyServerConnectInProgress;
-            _lobbyClient.ConnectProxy(LobbyHost, LobbyPort, "127.0.0.1", 9150, null, null);
+            _lobbyClient.Connect(LobbyHost, LobbyPort);
 
             return _activeLoginTask.Task;
         }

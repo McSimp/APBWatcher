@@ -76,6 +76,7 @@
     <Compile Include="CryptoTest.cs" />
     <Compile Include="Crypto\NetworkRC4.cs" />
     <Compile Include="Lobby\CharacterInfo.cs" />
+    <Compile Include="Networking\ISocketFactory.cs" />
     <Compile Include="Networking\KickData.cs" />
     <Compile Include="Lobby\LobbyClient.cs" />
     <Compile Include="Lobby\ClientPackets\GC2LS_ASK_LOGIN.cs" />
@@ -92,6 +93,8 @@
     <Compile Include="Networking\APBOpCode.cs" />
     <Compile Include="Networking\PacketHandlerAttribute.cs" />
     <Compile Include="Networking\ServerPacket.cs" />
+    <Compile Include="Networking\ProxySocketFactory.cs" />
+    <Compile Include="Networking\StandardSocketFactory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ProxySocket\AuthMethod.cs" />
     <Compile Include="ProxySocket\AuthNone.cs" />

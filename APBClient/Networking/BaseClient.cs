@@ -17,6 +17,7 @@ namespace APBClient.Networking
         private const int RecvBufferSize = 65535;
         private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
+        private ISocketFactory _socketFactory;
         private ProxySocket _socket;
         private byte[] _recvBuffer = new byte[RecvBufferSize];
         private int _nextPacketLength;
@@ -28,37 +29,27 @@ namespace APBClient.Networking
         public event EventHandler<Exception> OnConnectFailed = delegate { };
         public event EventHandler OnDisconnect = delegate { };
 
-        public BaseClient()
+        public BaseClient(ISocketFactory socketFactory = null)
         {
+            if (socketFactory == null)
+            {
+                _socketFactory = new StandardSocketFactory();
+            }
+            else
+            {
+                _socketFactory = socketFactory;
+            }
+            
             SetupHandlers();
-        }
-
-        private void ConnectInternal(string host, int port)
-        {
-            Log.Info($"Connecting to {host}:{port}");
-            _socket.BeginConnect(host, port, ConnectCallback, null);
         }
 
         public void Connect(string host, int port)
         {
             _receivedLength = 0;
             _encryption.Initialized = false;
-            _socket = new ProxySocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            ConnectInternal(host, port);
-        }
-
-        public void ConnectProxy(string host, int port, string proxyIP, int proxyPort, string proxyUsername, string proxyPassword)
-        {
-            _socket = new ProxySocket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            _socket.ProxyEndPoint = new IPEndPoint(IPAddress.Parse(proxyIP), proxyPort);
-            _socket.ProxyType = ProxyTypes.Socks5;
-            if (proxyUsername != null && proxyPassword != null)
-            {
-                _socket.ProxyUser = proxyUsername;
-                _socket.ProxyPass = proxyPassword;
-            }
-
-            ConnectInternal(host, port);
+            _socket = _socketFactory.CreateSocket();
+            Log.Info($"Connecting to {host}:{port}");
+            _socket.BeginConnect(host, port, ConnectCallback, null);
         }
 
         private void ConnectCallback(IAsyncResult ar)
@@ -97,6 +88,7 @@ namespace APBClient.Networking
                 _socket.Close();
                 _socket = null;
             }
+            catch (ObjectDisposedException e) {}
             catch (Exception e)
             {
                 Log.Warn("Error occurred while disconnecting from socket", e);
