@@ -39,6 +39,43 @@ namespace APBWatcher
             return point;
         }
 
+        static async Task ScrapeForAccountCharacter(int accountIndex, int characterIndex, InfluxDb influxClient, WatcherConfig config, HardwareStore hw, ISocketFactory sf)
+        {
+            var client = new APBClient.APBClient(config.ApbAccounts[accountIndex]["username"], config.ApbAccounts[accountIndex]["password"], hw, sf);
+            await client.Login();
+            Console.WriteLine("Logged In!");
+            List<CharacterInfo> characters = client.GetCharacters();
+            Console.WriteLine("Got characters!");
+            List<WorldInfo> worlds = await client.GetWorlds();
+            Console.WriteLine("Received worlds!");
+            CharacterInfo chosenCharacter = characters[characterIndex];
+            FinalWorldEnterData worldEnterData = await client.EnterWorld(chosenCharacter.SlotNumber);
+            Console.WriteLine("Connected to world!");
+            Dictionary<int, DistrictInfo> districts = client.GetDistricts();
+            Console.WriteLine("Got districts");
+            List<InstanceInfo> instances = await client.GetInstances();
+            Console.WriteLine("Recieved instances");
+            foreach (var instance in instances)
+            {
+                string name = "UNKNOWN";
+                try
+                {
+                    name = districts[instance.DistrictUid].Name;
+                }
+                catch (Exception e)
+                {
+
+                }
+
+                Console.WriteLine(String.Format("DistrictUID={0}, SDD={1:X}, Instance={2}, Threat={3}, Crims={4}, Enfs={5}, Status={6}, World={7} ({8})", instance.DistrictUid, districts[instance.DistrictUid].DistrictInstanceTypeSdd, instance.InstanceNum, instance.Threat, instance.Criminals, instance.Enforcers, instance.DistrictStatus, chosenCharacter.WorldUID, name));
+
+                var point = BuildPoint(instance, districts[instance.DistrictUid], chosenCharacter);
+                var resp = await influxClient.WriteAsync("apb", point);
+            }
+
+            client.Disconnect();
+        }
+
         static void Main(string[] args)
         {
             WatcherConfig config;
@@ -64,47 +101,17 @@ namespace APBWatcher
                 {
                     try
                     {
-                        var client = new APBClient.APBClient(config.ApbAccounts[0]["username"], config.ApbAccounts[0]["password"], hw, sf);
-                        await client.Login();
-                        Console.WriteLine("Logged In!");
-                        List<CharacterInfo> characters = client.GetCharacters();
-                        Console.WriteLine("Got characters!");
-                        List<WorldInfo> worlds = await client.GetWorlds();
-                        Console.WriteLine("Received worlds!");
-                        CharacterInfo chosenCharacter = characters[0];
-                        FinalWorldEnterData worldEnterData = await client.EnterWorld(chosenCharacter.SlotNumber);
-                        Console.WriteLine("Connected to world!");
-                        Dictionary<int, DistrictInfo> districts = client.GetDistricts();
-                        Console.WriteLine("Got districts");
-                        int i = 0;
-                        while (true)
-                        {
-                            List<InstanceInfo> instances = await client.GetInstances();
-                            Console.WriteLine("Recieved instances");
-                            if (i % 2 == 0)
-                            {
-                                foreach (var instance in instances)
-                                {
-                                    string name = "UNKNOWN";
-                                    try
-                                    {
-                                        name = districts[instance.DistrictUid].Name;
-                                    }
-                                    catch (Exception e)
-                                    {
+                        await ScrapeForAccountCharacter(0, 0, influxClient, config, hw, sf);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Error occurred");
+                        Console.WriteLine(e);
+                    }
 
-                                    }
-
-                                    Console.WriteLine(String.Format("DistrictUID={0}, SDD={1:X}, Instance={2}, Threat={3}, Crims={4}, Enfs={5}, Status={6}, World={7} ({8})", instance.DistrictUid, districts[instance.DistrictUid].DistrictInstanceTypeSdd, instance.InstanceNum, instance.Threat, instance.Criminals, instance.Enforcers, instance.DistrictStatus, chosenCharacter.WorldUID, name));
-
-                                    var point = BuildPoint(instance, districts[instance.DistrictUid], chosenCharacter);
-                                    var resp = await influxClient.WriteAsync("apb", point);
-                                }
-                            }
-
-                            System.Threading.Thread.Sleep(60000);
-                            i++;
-                        }
+                    try
+                    {
+                        await ScrapeForAccountCharacter(0, 1, influxClient, config, hw, sf);
                     }
                     catch (Exception e)
                     {

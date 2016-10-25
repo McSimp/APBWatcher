@@ -164,10 +164,11 @@ namespace APBClient
             SetAllTaskExceptions("Connection closed while processing");
         }
 
-        private void Disconnect()
+        public void Disconnect()
         {
             _state = ClientState.Disconnected;
-            _lobbyClient.Disconnect();
+            _lobbyClient?.Disconnect();
+            _worldClient?.Disconnect();
         }
 
         [RequiredState(ClientState.LobbyServerConnectInProgress)]

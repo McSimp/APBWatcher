@@ -53,8 +53,9 @@ const types = {
 
 // TODO: What are the other worlds?
 const worlds = {
-  '3002': 'jericho'
-}
+  '3002': 'jericho',
+  '3103': 'citadel'
+};
 
 export default class Instance {
   constructor(data) {
