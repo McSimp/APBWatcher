@@ -41,14 +41,14 @@ namespace APBWatcher
 
         static void Main(string[] args)
         {
-            Dictionary<string, string> config;
+            WatcherConfig config;
             using (var configReader = File.OpenText("watcher_conf.yml"))
             {
                 var deserializer = new Deserializer();
-                config = deserializer.Deserialize<Dictionary<string, string>>(configReader);
+                config = deserializer.Deserialize<WatcherConfig>(configReader);
             }
             
-            var influxClient = new InfluxDb(config["influx_host"], config["influx_username"], config["influx_password"], InfluxVersion.Auto);
+            var influxClient = new InfluxDb(config.InfluxHost, config.InfluxUsername, config.InfluxPassword, InfluxVersion.Auto);
 
             HardwareStore hw;
             using (TextReader reader = File.OpenText("hw.yml"))
@@ -64,7 +64,7 @@ namespace APBWatcher
                 {
                     try
                     {
-                        var client = new APBClient.APBClient(config["apb_username"], config["apb_password"], hw, sf);
+                        var client = new APBClient.APBClient(config.ApbAccounts[0]["username"], config.ApbAccounts[0]["password"], hw, sf);
                         await client.Login();
                         Console.WriteLine("Logged In!");
                         List<CharacterInfo> characters = client.GetCharacters();
@@ -95,7 +95,7 @@ namespace APBWatcher
 
                                     }
 
-                                    Console.WriteLine(String.Format("DistrictUID={0}, SDD={1:X}, Instance={2}, Threat={3}, Crims={4}, Enfs={5}, Status={6} ({7})", instance.DistrictUid, districts[instance.DistrictUid].DistrictInstanceTypeSdd, instance.InstanceNum, instance.Threat, instance.Criminals, instance.Enforcers, instance.DistrictStatus, name));
+                                    Console.WriteLine(String.Format("DistrictUID={0}, SDD={1:X}, Instance={2}, Threat={3}, Crims={4}, Enfs={5}, Status={6}, World={7} ({8})", instance.DistrictUid, districts[instance.DistrictUid].DistrictInstanceTypeSdd, instance.InstanceNum, instance.Threat, instance.Criminals, instance.Enforcers, instance.DistrictStatus, chosenCharacter.WorldUID, name));
 
                                     var point = BuildPoint(instance, districts[instance.DistrictUid], chosenCharacter);
                                     var resp = await influxClient.WriteAsync("apb", point);
