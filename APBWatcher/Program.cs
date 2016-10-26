@@ -118,6 +118,16 @@ namespace APBWatcher
                         Console.WriteLine("Error occurred");
                         Console.WriteLine(e);
                     }
+
+                    try
+                    {
+                        await ScrapeForAccountCharacter(1, 0, influxClient, config, hw, sf);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Error occurred");
+                        Console.WriteLine(e);
+                    }
                 }).Wait();
 
                 System.Threading.Thread.Sleep(120000);
