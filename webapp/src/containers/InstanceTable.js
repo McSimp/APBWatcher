@@ -113,7 +113,7 @@ class InstanceTable extends Component {
     }
 
     return (
-      <Table celled className='sortable'>
+      <Table celled className='sortable unstackable'>
         <Table.Header>
           <Table.Row>
             { Object.keys(columns).map(key => {
