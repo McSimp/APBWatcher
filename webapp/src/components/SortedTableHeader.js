@@ -1,5 +1,5 @@
 import React, { PropTypes } from 'react';
-import { Table } from 'semantic-ui-react';
+import { Table } from '../semantic-ui';
 
 const SortedTableHeader = ({id, sortKey, sortDesc, children, onClick, ...props}) => {
   let classes = null;

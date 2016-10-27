@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Container, Header, Icon } from 'semantic-ui-react';
+import { Container, Header, Icon } from '../semantic-ui';
 import './App.css';
 import InstanceTable from './InstanceTable.js';
 import RefreshBar from './RefreshBar.js';

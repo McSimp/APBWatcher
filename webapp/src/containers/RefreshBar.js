@@ -1,5 +1,5 @@
 import React, { Component, PropTypes } from 'react';
-import { Button } from 'semantic-ui-react';
+import { Button } from '../semantic-ui';
 import TimeAgo from 'react-timeago';
 import { connect } from 'react-redux';
 import { requestInstanceRefresh } from '../actions';

@@ -1,6 +1,6 @@
 import React, { Component, PropTypes } from 'react';
 import { connect } from 'react-redux';
-import { Menu } from 'semantic-ui-react';
+import { Menu } from '../semantic-ui';
 import { setActiveWorld } from '../actions';
 
 class WorldMenu extends Component {

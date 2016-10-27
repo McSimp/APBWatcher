@@ -1,5 +1,5 @@
 import React, { Component, PropTypes } from 'react';
-import { Table } from 'semantic-ui-react';
+import { Table } from '../semantic-ui';
 import ThreatIndicator from './ThreatIndicator.js'
 
 class InstanceRow extends Component {

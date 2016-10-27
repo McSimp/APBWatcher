@@ -1,5 +1,5 @@
 import React, { PropTypes } from 'react';
-import { Icon, Popup } from 'semantic-ui-react';
+import { Icon, Popup } from '../semantic-ui';
 
 const threats = {
   '1': { 

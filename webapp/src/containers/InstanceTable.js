@@ -1,4 +1,4 @@
-import { Table, Message, Icon } from 'semantic-ui-react';
+import { Table, Message, Icon } from '../semantic-ui';
 import React, { Component, PropTypes } from 'react';
 import InstanceRow from '../components/InstanceRow.js';
 import SortedTableHeader from '../components/SortedTableHeader.js';
