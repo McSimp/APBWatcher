@@ -80,7 +80,7 @@ export { default as Icon } from 'semantic-ui-react/dist/commonjs/elements/Icon'
 // export { default as ListItem } from 'semantic-ui-react/dist/commonjs/elements/List/ListItem'
 // export { default as ListList } from 'semantic-ui-react/dist/commonjs/elements/List/ListList'
 
-// export { default as Loader } from 'semantic-ui-react/dist/commonjs/elements/Loader'
+export { default as Loader } from 'semantic-ui-react/dist/commonjs/elements/Loader'
 
 // export { default as Rail } from 'semantic-ui-react/dist/commonjs/elements/Rail'
 

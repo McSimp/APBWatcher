@@ -4,6 +4,7 @@ import './App.css';
 import InstanceTable from './InstanceTable.js';
 import RefreshBar from './RefreshBar.js';
 import WorldMenu from './WorldMenu.js';
+import PlayerChart from './PlayerChart.js';
 
 class App extends Component {
   render() {
@@ -13,6 +14,7 @@ class App extends Component {
           <Icon name='heartbeat' />
           <Header.Content>APB Watcher</Header.Content>
         </Header>
+        <PlayerChart />
         <WorldMenu />
         <InstanceTable />
         <RefreshBar />

@@ -19,6 +19,18 @@ const rootReducer = (state={}, action) => {
         ...state,
         activeWorld: action.world
       };
+    case ActionTypes.REFRESH_PLAYER_STATS:
+      return {
+        ...state,
+        isFetchingPlayerStats: true
+      };
+    case ActionTypes.RECEIVE_PLAYER_STATS:
+      return {
+        ...state,
+        lastUpdatedStats: action.receivedAt,
+        playerStats: action.stats,
+        isFetchingPlayerStats: false
+      };
     default:
       return state;
   }

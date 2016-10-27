@@ -11,7 +11,10 @@ const store = configureStore({
   instances: [],
   isFetchingInstances: false,
   activeWorld: 'jericho',
-  lastUpdated: null
+  lastUpdated: null,
+  playerStats: null,
+  isFetchingPlayerStats: false,
+  lastUpdatedStats: null
 });
 
 render(
