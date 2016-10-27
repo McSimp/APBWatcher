@@ -109,6 +109,11 @@ namespace APBClient.Networking
 
         private void ReceiveLengthCallback(IAsyncResult ar)
         {
+            if (_socket == null)
+            {
+                return;
+            }
+
             try
             {
                 int length = _socket.EndReceive(ar);
@@ -143,6 +148,11 @@ namespace APBClient.Networking
 
         private void ReceiveDataCallback(IAsyncResult ar)
         {
+            if (_socket == null)
+            {
+                return;
+            }
+
             try
             {
                 int length = _socket.EndReceive(ar);
