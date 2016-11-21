@@ -22,7 +22,7 @@ namespace APBClient.Lobby
         public event EventHandler<ErrorData> OnError = delegate { };
         public event EventHandler<int> OnPuzzleFailed = delegate { };
         public event EventHandler<LoginFailedData> OnLoginFailed = delegate { };
-        public event EventHandler OnLoginSuccess = delegate { };
+        public event EventHandler<EventArgs> OnLoginSuccess = delegate { };
         public event EventHandler<List<CharacterInfo>> OnCharacterList = delegate { };
         public event EventHandler<KickData> OnKick = delegate { };
         public event EventHandler<int> OnGetWorldListFailed = delegate { };

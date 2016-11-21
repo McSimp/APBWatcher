@@ -20,6 +20,10 @@ namespace APBClient.World
         public event EventHandler<List<InstanceInfo>> OnInstanceListSuccess = delegate { };
         public event EventHandler<int> OnInstanceListFailed = delegate { };
         public event EventHandler<List<DistrictInfo>> OnDistrictListSuccess = delegate { };
+        public event EventHandler<int> OnDistrictReserveFailed = delegate { };
+        public event EventHandler<ReserveInfo> OnDistrictReserveSuccess = delegate { };
+        public event EventHandler<int> OnDistrictEnterFailed = delegate { };
+        public event EventHandler<DistrictEnterInfo> OnDistrictEnterSuccess = delegate { };
 
         private byte[] _encryptionKey;
         private uint _accountId;
@@ -51,6 +55,15 @@ namespace APBClient.World
             var instanceListReq = new GC2WS_ASK_INSTANCE_LIST();
             SendPacket(instanceListReq);
         }
+
+        public void AskDistrictReserve(int districtUid, int instanceNum, int characterUid, bool group)
+        {
+            SendPacket(new GC2WS_ASK_DISTRICT_RESERVE(districtUid, instanceNum, characterUid, group));
+        }
+
+        public void AskDistrictEnter()
+        {
+            SendPacket(new GC2WS_ASK_DISTRICT_ENTER());
+        }
     }
 }
-

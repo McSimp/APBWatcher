@@ -2,8 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using APBClient.IO;
 using APBClient.Lobby;
 using APBClient.Networking;
 using APBClient.World;
@@ -11,6 +13,7 @@ using InfluxDB.Net;
 using InfluxDB.Net.Enums;
 using InfluxDB.Net.Models;
 using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NodeDeserializers;
 
 namespace APBWatcher
 {
@@ -140,7 +143,7 @@ namespace APBWatcher
             client.Disconnect();
         }
 
-        static void Main(string[] args)
+        static void RunWatcher()
         {
             WatcherConfig config;
             using (var configReader = File.OpenText("watcher_conf.yml"))
@@ -196,6 +199,83 @@ namespace APBWatcher
 
                 System.Threading.Thread.Sleep(120000);
             }
+        }
+
+        static void DistrictTest()
+        {
+            WatcherConfig config;
+            using (var configReader = File.OpenText("watcher_conf.yml"))
+            {
+                var deserializer = new Deserializer();
+                config = deserializer.Deserialize<WatcherConfig>(configReader);
+            }
+
+            HardwareStore hw;
+            using (TextReader reader = File.OpenText("hw.yml"))
+            {
+                hw = new HardwareStore(reader);
+            }
+
+            ISocketFactory sf = new ProxySocketFactory("127.0.0.1", 9150, null, null);
+
+            Task.Run(async () =>
+            {
+                var client = new APBClient.APBClient(config.ApbAccounts[3]["username"], config.ApbAccounts[3]["password"], hw, sf);
+                await client.Login();
+                Console.WriteLine("Logged In!");
+                List<CharacterInfo> characters = client.GetCharacters();
+                Console.WriteLine("Got characters!");
+                List<WorldInfo> worlds = await client.GetWorlds();
+                Console.WriteLine("Received worlds!");
+                CharacterInfo chosenCharacter = characters[0];
+                FinalWorldEnterData worldEnterData = await client.EnterWorld(chosenCharacter.SlotNumber);
+                Console.WriteLine("Connected to world!");
+                Dictionary<int, DistrictInfo> districts = client.GetDistricts();
+                Console.WriteLine("Got districts");
+                List<InstanceInfo> instances = await client.GetInstances();
+                Console.WriteLine("Recieved instances");
+
+                foreach (var instance in instances)
+                {
+                    string name = "UNKNOWN";
+                    try
+                    {
+                        name = districts[instance.DistrictUid].Name;
+                    }
+                    catch (Exception e)
+                    {
+
+                    }
+
+                    Console.WriteLine(
+                        String.Format(
+                            "DistrictUID={0}, SDD={1:X}, Instance={2}, Threat={3}, Crims={4}, Enfs={5}, Status={6}, World={7} ({8})",
+                            instance.DistrictUid, districts[instance.DistrictUid].DistrictInstanceTypeSdd,
+                            instance.InstanceNum, instance.Threat, instance.Criminals, instance.Enforcers,
+                            instance.DistrictStatus, chosenCharacter.WorldUID, name));
+                }
+
+                var instanceToJoin = (from instance in instances
+                    where instance.DistrictStatus == 0 && instance.Threat == 1
+                    select instance).OrderBy(s => s.Criminals + s.Enforcers).First();
+
+                Console.WriteLine(
+                        String.Format(
+                            "JOINING DistrictUID={0}, SDD={1:X}, Instance={2}, Threat={3}, Crims={4}, Enfs={5}, Status={6}, World={7}",
+                            instanceToJoin.DistrictUid, districts[instanceToJoin.DistrictUid].DistrictInstanceTypeSdd,
+                            instanceToJoin.InstanceNum, instanceToJoin.Threat, instanceToJoin.Criminals, instanceToJoin.Enforcers,
+                            instanceToJoin.DistrictStatus, chosenCharacter.WorldUID));
+
+                DistrictEnterInfo enterInfo = await client.JoinInstance(instanceToJoin);
+
+                client.Disconnect();
+            }).Wait();
+        }
+
+        static void Main(string[] args)
+        {
+            RunWatcher();
+            //DistrictTest();
         }
     }
 }

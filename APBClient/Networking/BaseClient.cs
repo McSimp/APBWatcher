@@ -25,9 +25,9 @@ namespace APBClient.Networking
         private NetworkRc4 _encryption = new NetworkRc4();
         private Dictionary<uint, Tuple<string, Action<BaseClient, ServerPacket>>> _packetHandlers = new Dictionary<uint, Tuple<string, Action<BaseClient, ServerPacket>>>();
 
-        public event EventHandler OnConnectSuccess = delegate { };
+        public event EventHandler<EventArgs> OnConnectSuccess = delegate { };
         public event EventHandler<Exception> OnConnectFailed = delegate { };
-        public event EventHandler OnDisconnect = delegate { };
+        public event EventHandler<EventArgs> OnDisconnect = delegate { };
 
         public BaseClient(ISocketFactory socketFactory = null)
         {

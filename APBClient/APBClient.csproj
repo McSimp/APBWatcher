@@ -91,6 +91,8 @@
     <Compile Include="Networking\IPacketHandler.cs" />
     <Compile Include="Networking\APBOpCode.cs" />
     <Compile Include="Networking\PacketHandlerAttribute.cs" />
+    <Compile Include="World\DistrictEnterInfo.cs" />
+    <Compile Include="World\ReserveInfo.cs" />
     <Compile Include="Networking\ServerPacket.cs" />
     <Compile Include="Networking\ProxySocketFactory.cs" />
     <Compile Include="Networking\StandardSocketFactory.cs" />
@@ -105,11 +107,15 @@
     <Compile Include="ProxySocket\Socks5Handler.cs" />
     <Compile Include="ProxySocket\SocksHandler.cs" />
     <Compile Include="Util.cs" />
+    <Compile Include="World\ClientPackets\GC2WS_ASK_DISTRICT_ENTER.cs" />
+    <Compile Include="World\ClientPackets\GC2WS_ASK_DISTRICT_RESERVE.cs" />
     <Compile Include="World\ClientPackets\GC2WS_ASK_INSTANCE_LIST.cs" />
     <Compile Include="World\ClientPackets\GC2WS_ASK_WORLD_ENTER.cs" />
     <Compile Include="World\DistrictInfo.cs" />
     <Compile Include="World\FinalWorldEnterData.cs" />
     <Compile Include="World\InstanceInfo.cs" />
+    <Compile Include="World\ServerPackets\WS2GC_ANS_DISTRICT_ENTER.cs" />
+    <Compile Include="World\ServerPackets\WS2GC_ANS_DISTRICT_RESERVE.cs" />
     <Compile Include="World\ServerPackets\WS2GC_ANS_INSTANCE_LIST.cs" />
     <Compile Include="World\ServerPackets\WS2GC_ANS_WORLD_ENTER.cs" />
     <Compile Include="World\ServerPackets\WS2GC_DISTRICT_LIST.cs" />
