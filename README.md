@@ -102,6 +102,8 @@ WmiSections:
   HDD:
     Select: "Size,Model,Signature"
     From: "FROM Win32_DiskDrive WHERE InterfaceType<>'USB' AND InterfaceType<>'1394' AND (PNPDeviceID LIKE 'IDE%' OR PNPDeviceID LIKE 'SCSI%')"
+    NumericFields: 
+      - Signature
     Data:
       - Size: 500269754880
         Model: QWERTYUIOP

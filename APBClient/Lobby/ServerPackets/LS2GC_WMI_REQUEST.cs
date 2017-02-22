@@ -99,15 +99,16 @@ namespace APBClient.Lobby
                 // Generate the Windows information section
                 byte[] windowsInfo = client._hardwareStore.BuildWindowsInfo();
 
-                // Encrypt the BFP and HW sections with our public key
+                // Encrypt the BFP, HW, and hash sections with our public key
                 byte[] hwUnicodeData = Encoding.Unicode.GetBytes(hwBuilder.ToString());
                 byte[] bfpUnicodeData = Encoding.Unicode.GetBytes(bfpBuilder.ToString());
 
                 byte[] encryptedHWData = WindowsRSA.EncryptData(client._serverEncryptEngine, hwUnicodeData);
                 byte[] encryptedBFPData = WindowsRSA.EncryptData(client._serverEncryptEngine, bfpUnicodeData);
+                byte[] encryptedHashBlock = WindowsRSA.EncryptData(client._serverEncryptEngine, hashBlock);
 
                 // Construct and send the response!
-                var hardwareInfo = new GC2LS_HARDWARE_INFO(windowsInfo, 0, 0, client._hardwareStore.BfpVersion, bfpHash, hashBlock, encryptedBFPData, encryptedHWData);
+                var hardwareInfo = new GC2LS_HARDWARE_INFO(windowsInfo, 0, 0, client._hardwareStore.BfpVersion, bfpHash, encryptedHashBlock, encryptedBFPData, encryptedHWData);
                 client.SendPacket(hardwareInfo);
             }
         }
