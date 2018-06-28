@@ -39,6 +39,12 @@ var chartConfig = {
       data: [],
       color: '#FFCE56'
     },
+    {
+      type: 'area',
+      name: 'Nekrova (RU)',
+      data: [],
+      color: '#43E8A9'
+    }
   ],
   credits: {
     enabled: false
@@ -111,6 +117,7 @@ class PlayerChart extends Component {
     chartConfig.series[0].data = getSeriesData(stats, '3002');
     chartConfig.series[1].data = getSeriesData(stats, '3103');
     chartConfig.series[2].data = getSeriesData(stats, '3151');
+    chartConfig.series[3].data = getSeriesData(stats, '3104');
 
     return <ReactHighcharts config={chartConfig} />;
   }

@@ -16,6 +16,7 @@ class WorldMenu extends Component {
         <Menu.Item name='jericho' active={activeWorld === 'jericho'} onClick={ () => { setActiveWorld('jericho'); } }>Jericho (NA)</Menu.Item>
         <Menu.Item name='citadel' active={activeWorld === 'citadel'} onClick={ () => { setActiveWorld('citadel'); } }>Citadel (EU)</Menu.Item>
         <Menu.Item name='han' active={activeWorld === 'han'} onClick={ () => { setActiveWorld('han'); } }>Han (Hong Kong)</Menu.Item>
+        <Menu.Item name='nekrova' active={activeWorld === 'nekrova'} onClick={ () => { setActiveWorld('nekrova'); } }>Nekrova (RU)</Menu.Item>
       </Menu>
     );
   }

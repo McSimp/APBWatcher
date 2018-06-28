@@ -55,7 +55,8 @@ const types = {
 const worlds = {
   '3002': 'jericho',
   '3103': 'citadel',
-  '3151': 'han'
+  '3151': 'han',
+  '3104': 'nekrova'
 };
 
 export default class Instance {
